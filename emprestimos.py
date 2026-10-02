@@ -203,7 +203,7 @@ def main(page: ft.Page):
 
             # --- INÍCIO DA LÓGICA DE SALVAR PARA WEB ---
             # COPIE A PARTIR DESTA LINHA (Para forçar o chat a manter os espaços invisíveis)
-        if not os.path.exists("assets"):
+    if not os.path.exists("assets"):
             os.makedirs("assets")
 
         nome_arquivo = f"Promissorias_{nome.replace(' ', '_')}.pdf"
