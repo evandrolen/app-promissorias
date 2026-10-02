@@ -113,7 +113,7 @@ def main(page: ft.Page):
 
             # --- GERAÇÃO DO  ---
             pdf = FPDF(orientation='P', unit='mm', format='A4')
-            .set_auto_page_break(auto=False) 
+            pdf.set_auto_page_break(auto=False) 
             
             meses = ["", "janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
             hoje = datetime.now()
@@ -126,12 +126,12 @@ def main(page: ft.Page):
                 
                 resumo += f"Parcela {i+1}/{qtd_parcelas} - R$ {valor_parcela:.2f} - Venc: {data_formatada}\n"
 
-                .add_page()
+                pdf.add_page()
                 
-                .set_draw_color(180, 180, 180)
-                .set_xy(10, 148)
-                .set_font("Arial", 'I', 8)
-                .cell(0, 5, "- - - - - - - - - - - - - - - - - - - - - - - - - CORTAR AQUI - - - - - - - - - - - - - - - - - - - - - - - - -", ln=True, align="C")
+                pdf.set_draw_color(180, 180, 180)
+                pdf.set_xy(10, 148)
+                pdf.set_font("Arial", 'I', 8)
+                pdf.cell(0, 5, "- - - - - - - - - - - - - - - - - - - - - - - - - CORTAR AQUI - - - - - - - - - - - - - - - - - - - - - - - - -", ln=True, align="C")
 
                 vias = [
                     {"y": 20, "titulo": "VIA DO CREDOR (Manter assinada em posse da loja)"},
@@ -141,65 +141,65 @@ def main(page: ft.Page):
                 for via in vias:
                     y_start = via["y"]
                     
-                    .set_draw_color(0, 0, 0)
-                    .rect(15, y_start, 180, 120)
+                    pdf.set_draw_color(0, 0, 0)
+                    pdf.rect(15, y_start, 180, 120)
 
-                    .set_y(y_start + 4)
-                    .set_font("Arial", 'B', 16)
-                    .cell(0, 8, "NOTA PROMISSÓRIA", ln=True, align="C")
+                    pdf.set_y(y_start + 4)
+                    pdf.set_font("Arial", 'B', 16)
+                    pdf.cell(0, 8, "NOTA PROMISSÓRIA", ln=True, align="C")
                     
-                    .set_y(y_start + 11)
-                    .set_font("Arial", 'I', 9)
-                    .cell(0, 5, via["titulo"], ln=True, align="C")
+                    pdf.set_y(y_start + 11)
+                    pdf.set_font("Arial", 'I', 9)
+                    pdf.cell(0, 5, via["titulo"], ln=True, align="C")
                     
-                    .set_y(y_start + 16)
-                    .set_font("Arial", 'B', 12)
-                    .cell(0, 5, "="*60, ln=True, align="C")
+                    pdf.set_y(y_start + 16)
+                    pdf.set_font("Arial", 'B', 12)
+                    pdf.cell(0, 5, "="*60, ln=True, align="C")
 
-                    .set_y(y_start + 23)
-                    .set_x(20)
-                    .cell(90, 6, f"Nº da Parcela: {i+1:02d}/{qtd_parcelas:02d}")
-                    .cell(70, 6, f"Valor: R$ {valor_parcela:.2f}", align="R", ln=True)
+                    pdf.set_y(y_start + 23)
+                    pdf.set_x(20)
+                    pdf.cell(90, 6, f"Nº da Parcela: {i+1:02d}/{qtd_parcelas:02d}")
+                    pdf.cell(70, 6, f"Valor: R$ {valor_parcela:.2f}", align="R", ln=True)
                     
-                    .set_x(20)
-                    .cell(0, 6, f"Data de Vencimento: {data_formatada}", ln=True)
+                    pdf.set_x(20)
+                    pdf.cell(0, 6, f"Data de Vencimento: {data_formatada}", ln=True)
                     
-                    .set_y(y_start + 38)
-                    .set_x(20)
-                    .set_font("Arial", '', 12)
+                    pdf.set_y(y_start + 38)
+                    pdf.set_x(20)
+                    pdf.set_font("Arial", '', 12)
                     
                     texto_promissoria = (
                         f"Aos {vencimento.strftime('%d')} dias do mês de {meses[vencimento.month]} de {vencimento.strftime('%Y')}, "
                         f"pagarei por esta única via de NOTA PROMISSÓRIA a {nome_credor}, ou à "
                         f"sua ordem, a quantia de R$ {valor_parcela:.2f} ({valor_extenso}), em moeda corrente deste país."
                     )
-                    .multi_cell(170, 6, texto_promissoria, align="J")
+                    pdf.multi_cell(170, 6, texto_promissoria, align="J")
                     
-                    .set_y(y_start + 63)
-                    .set_x(20)
-                    .set_font("Arial", 'B', 11)
-                    .cell(0, 6, f"Praça de Pagamento: {cidade_credor}", ln=True)
+                    pdf.set_y(y_start + 63)
+                    pdf.set_x(20)
+                    pdf.set_font("Arial", 'B', 11)
+                    pdf.cell(0, 6, f"Praça de Pagamento: {cidade_credor}", ln=True)
                     
-                    .set_y(y_start + 76)
-                    .set_x(20)
-                    .set_font("Arial", 'B', 10)
-                    .cell(0, 5, "DADOS DO EMITENTE (Devedor)", ln=True)
+                    pdf.set_y(y_start + 76)
+                    pdf.set_x(20)
+                    pdf.set_font("Arial", 'B', 10)
+                    pdf.cell(0, 5, "DADOS DO EMITENTE (Devedor)", ln=True)
                     
-                    .set_font("Arial", '', 10)
-                    .set_x(20)
-                    .cell(0, 5, f"Nome: {nome}        CPF: {cpf}", ln=True)
-                    .set_x(20)
-                    .multi_cell(170, 5, f"Endereço: {endereco_completo}")
+                    pdf.set_font("Arial", '', 10)
+                    pdf.set_x(20)
+                    pdf.cell(0, 5, f"Nome: {nome}        CPF: {cpf}", ln=True)
+                    pdf.set_x(20)
+                    pdf.multi_cell(170, 5, f"Endereço: {endereco_completo}")
                     
-                    .ln(2)
-                    .set_x(20)
-                    .cell(170, 5, texto_emissao, ln=True, align="R")
+                    pdf.ln(2)
+                    pdf.set_x(20)
+                    pdf.cell(170, 5, texto_emissao, ln=True, align="R")
                     
-                    .set_y(y_start + 105)
-                    .set_x(20)
-                    .cell(170, 6, "_______________________________________________________________", ln=True, align="C")
-                    .set_x(20)
-                    .cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
+                    pdf.set_y(y_start + 105)
+                    pdf.set_x(20)
+                    pdf.cell(170, 6, "_______________________________________________________________", ln=True, align="C")
+                    pdf.set_x(20)
+                    pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
 
             # --- INÍCIO DA LÓGICA DE SALVAR PARA WEB ---
             if not os.path.exists("assets"):
@@ -207,7 +207,7 @@ def main(page: ft.Page):
 
             nome_arquivo = f"Promissorias_{nome.replace(' ', '_')}."
             caminho_arquivo = os.path.join("assets", nome_arquivo)
-            .output(caminho_arquivo)
+            pdf.output(caminho_arquivo)
             
             botao_pdf = ft.ElevatedButton(
             text="Abrir PDF",
