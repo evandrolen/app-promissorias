@@ -202,8 +202,7 @@ def main(page: ft.Page):
                     pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
 
             # --- INÍCIO DA LÓGICA DE SALVAR PARA WEB ---
-            # COPIE A PARTIR DESTA LINHA (Para forçar o chat a manter os espaços invisíveis)
-    if not os.path.exists("assets"):
+                    if not os.path.exists("assets"):
             os.makedirs("assets")
 
         nome_arquivo = f"Promissorias_{nome.replace(' ', '_')}.pdf"
