@@ -202,30 +202,25 @@ def main(page: ft.Page):
                     pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
 
             # --- INÍCIO DA LÓGICA DE SALVAR PARA WEB ---
-          if not os.path.exists("assets"):
-          os.makedirs("assets")
+            if not os.path.exists("assets"):
+                os.makedirs("assets")
 
-        nome_arquivo = f"Promissorias_{nome.replace(' ', '_')}.pdf"
-        caminho_arquivo = os.path.join("assets", nome_arquivo)
-        pdf.output(caminho_arquivo)
-        
-        botao_pdf = ft.ElevatedButton(
-            text="Abrir PDF",
-            icon=ft.icons.PICTURE_AS_PDF,
-            url=f"/{nome_arquivo}",
-            url_target="_blank",
-            style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
-        )
-        page.add(botao_pdf)
-        
-        resultado_texto.value = resumo + f"\n[ ✓ ] Promissória gerada! Clique no botão Abrir PDF abaixo."
-        resultado_texto.color = ft.colors.BLUE_GREY_900
-        page.update()
-
-    except Exception as erro:
-        resultado_texto.value = f"Erro: Preencha os campos corretamente. Detalhe: {erro}"
-        resultado_texto.color = ft.colors.RED
-        page.update()
+            nome_arquivo = f"Promissorias_{nome.replace(' ', '_')}.pdf"
+            caminho_arquivo = os.path.join("assets", nome_arquivo)
+            pdf.output(caminho_arquivo)
+            
+            botao_pdf = ft.ElevatedButton(
+                text="Abrir PDF",
+                icon=ft.icons.PICTURE_AS_PDF,
+                url=f"/{nome_arquivo}",
+                url_target="_blank",
+                style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
+            )
+            page.add(botao_pdf)
+            
+            resultado_texto.value = resumo + f"\n[ ✓ ] Promissória gerada! Clique no botão Abrir PDF abaixo."
+            resultado_texto.color = ft.colors.BLUE_GREY_900
+            page.update()
 
         except Exception as erro:
             resultado_texto.value = f"Erro: Preencha os campos corretamente. Detalhe: {erro}"
