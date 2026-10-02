@@ -216,8 +216,8 @@ def main(page: ft.Page):
             url_target="_blank",
             style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
         )
-        page.add(botao_pdf)
-        page.update()
+            page.add(botao_pdf)
+            page.update()
 
             resultado_texto.value = resumo + f"\n[ ✓ ] Promissória gerada! O download iniciará em instantes."
             resultado_texto.color = ft.colors.BLUE_GREY_900
