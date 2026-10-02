@@ -27,14 +27,14 @@ def main(page: ft.Page):
             abrir_tela_principal()
         else:
             config_aviso.value = "Preencha todos os campos para continuar."
-            config_aviso.color = ft.Colors.RED
+            config_aviso.color = ft.colors.RED
             page.update()
 
-    btn_salvar_config = ft.Button(
-        content="Salvar e Continuar", 
+    btn_salvar_config = ft.ElevatedButton(
+        text="Salvar e Continuar", 
         on_click=salvar_configuracao,
         expand=True,
-        style=ft.ButtonStyle(bgcolor=ft.Colors.BLUE_700, color=ft.Colors.WHITE)
+        style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
     )
 
     tela_configuracao = ft.Column([
@@ -52,7 +52,7 @@ def main(page: ft.Page):
     titulo_linha = ft.Row(
         [
             ft.Text("Novo Empréstimo", size=24, weight=ft.FontWeight.BOLD),
-            ft.IconButton(icon=ft.Icons.SETTINGS, on_click=abrir_tela_configuracao, tooltip="Configurar Loja")
+            ft.IconButton(icon=ft.icons.SETTINGS, on_click=abrir_tela_configuracao, tooltip="Configurar Loja")
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN
     )
 
@@ -210,7 +210,7 @@ def main(page: ft.Page):
             pdf.output(caminho_arquivo)
 
             resultado_texto.value = resumo + f"\n[ ✓ ] Promissória gerada! O download iniciará em instantes."
-            resultado_texto.color = ft.Colors.BLUE_GREY_900
+            resultado_texto.color = ft.colors.BLUE_GREY_900
             page.update()
 
             # Dispara o download no navegador
@@ -218,7 +218,7 @@ def main(page: ft.Page):
 
         except Exception as erro:
             resultado_texto.value = f"Erro: Preencha os campos corretamente. Detalhe: {erro}"
-            resultado_texto.color = ft.Colors.RED
+            resultado_texto.color = ft.colors.RED
 
         page.update()
 
@@ -236,12 +236,12 @@ def main(page: ft.Page):
         resultado_texto.value = ""
         page.update()
 
-    btn_gerar = ft.Button(
-        content="Gerar Carnê e PDF", on_click=simular_emprestimo, expand=True,
-        style=ft.ButtonStyle(bgcolor=ft.Colors.GREEN_700, color=ft.Colors.WHITE)
+    btn_gerar = ft.ElevatedButton(
+        text="Gerar Carnê e PDF", on_click=simular_emprestimo, expand=True,
+        style=ft.ButtonStyle(bgcolor=ft.colors.GREEN_700, color=ft.colors.WHITE)
     )
-    btn_limpar = ft.Button(
-        content="Limpar", on_click=limpar_campos, style=ft.ButtonStyle(bgcolor=ft.Colors.GREY_300, color=ft.Colors.BLACK)
+    btn_limpar = ft.ElevatedButton(
+        text="Limpar", on_click=limpar_campos, style=ft.ButtonStyle(bgcolor=ft.colors.GREY_300, color=ft.colors.BLACK)
     )
 
     tela_principal = ft.Column([
@@ -269,4 +269,4 @@ def main(page: ft.Page):
         page.update()
 
 # Executa o aplicativo diretamente no navegador
-ft.app(target=main, view=ft.AppView.WEB_BROWSER, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
+ft.app(target=main, view=ft.AppView.WEB_BROWSER, assets_dir="assets")
