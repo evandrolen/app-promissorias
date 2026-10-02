@@ -208,6 +208,7 @@ def main(page: ft.Page):
             nome_arquivo = f"Promissorias_{nome.replace(' ', '_')}.pdf"
             caminho_arquivo = os.path.join("assets", nome_arquivo)
             pdf.output(caminho_arquivo)
+            page.launch_url(f"/{nome_arquivo}")
 
             resultado_texto.value = resumo + f"\n[ ✓ ] Promissória gerada! O download iniciará em instantes."
             resultado_texto.color = ft.colors.BLUE_GREY_900
