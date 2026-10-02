@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from fpdf import FPDF
 from num2words import num2words
 import os
+if not os.path.exists("assets"):
+    os.makedirs("assets")
 
 def main(page: ft.Page):
     page.window_width = 380
@@ -212,7 +214,8 @@ def main(page: ft.Page):
             botao_pdf = ft.ElevatedButton(
             text="Abrir PDF",
             icon=ft.icons.PICTURE_AS_PDF,
-            on_click=lambda e: page.launch_url(f"/{nome_arquivo}"),
+            url=f"/{nome_arquivo}",
+            url_target="_blank",
             style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
         )
             page.add(botao_pdf)
