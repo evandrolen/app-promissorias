@@ -202,8 +202,8 @@ def main(page: ft.Page):
                     pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
 
             # --- INÍCIO DA LÓGICA DE SALVAR PARA WEB ---
-                    if not os.path.exists("assets"):
-            os.makedirs("assets")
+          if not os.path.exists("assets"):
+          os.makedirs("assets")
 
         nome_arquivo = f"Promissorias_{nome.replace(' ', '_')}.pdf"
         caminho_arquivo = os.path.join("assets", nome_arquivo)
