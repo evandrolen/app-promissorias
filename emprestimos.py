@@ -215,7 +215,7 @@ def main(page: ft.Page):
             on_click=lambda e: page.launch_url(f"/{nome_arquivo}"),
             style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
         )
-        page.add(botao_pdf)
+            page.add(botao_pdf)
             
             resultado_texto.value = resumo + f"\n[ ✓ ] Promissória gerada! Clique no botão Abrir PDF abaixo."
             resultado_texto.color = ft.colors.BLUE_GREY_900
