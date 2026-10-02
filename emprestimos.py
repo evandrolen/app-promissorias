@@ -27,14 +27,14 @@ def main(page: ft.Page):
             abrir_tela_principal()
         else:
             config_aviso.value = "Preencha todos os campos para continuar."
-            config_aviso.color = ft.colors.RED
+            config_aviso.color = ft.Colors.RED
             page.update()
 
     btn_salvar_config = ft.Button(
         content="Salvar e Continuar", 
         on_click=salvar_configuracao,
         expand=True,
-        style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
+        style=ft.ButtonStyle(bgcolor=ft.Colors.BLUE_700, color=ft.Colors.WHITE)
     )
 
     tela_configuracao = ft.Column([
@@ -210,7 +210,7 @@ def main(page: ft.Page):
             pdf.output(caminho_arquivo)
 
             resultado_texto.value = resumo + f"\n[ ✓ ] Promissória gerada! O download iniciará em instantes."
-            resultado_texto.color = ft.colors.BLUE_GREY_900
+            resultado_texto.color = ft.Colors.BLUE_GREY_900
             page.update()
 
             # Dispara o download no navegador
@@ -218,7 +218,7 @@ def main(page: ft.Page):
 
         except Exception as erro:
             resultado_texto.value = f"Erro: Preencha os campos corretamente. Detalhe: {erro}"
-            resultado_texto.color = ft.colors.RED
+            resultado_texto.color = ft.Colors.RED
 
         page.update()
 
@@ -238,10 +238,10 @@ def main(page: ft.Page):
 
     btn_gerar = ft.Button(
         content="Gerar Carnê e PDF", on_click=simular_emprestimo, expand=True,
-        style=ft.ButtonStyle(bgcolor=ft.colors.GREEN_700, color=ft.colors.WHITE)
+        style=ft.ButtonStyle(bgcolor=ft.Colors.GREEN_700, color=ft.Colors.WHITE)
     )
     btn_limpar = ft.Button(
-        content="Limpar", on_click=limpar_campos, style=ft.ButtonStyle(bgcolor=ft.colors.GREY_300, color=ft.colors.BLACK)
+        content="Limpar", on_click=limpar_campos, style=ft.ButtonStyle(bgcolor=ft.Colors.GREY_300, color=ft.Colors.BLACK)
     )
 
     tela_principal = ft.Column([
