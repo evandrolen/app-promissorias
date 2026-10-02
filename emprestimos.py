@@ -52,7 +52,7 @@ def main(page: ft.Page):
     titulo_linha = ft.Row(
         [
             ft.Text("Novo Empréstimo", size=24, weight=ft.FontWeight.BOLD),
-            ft.IconButton(icon=ft.icons.SETTINGS, on_click=abrir_tela_configuracao, tooltip="Configurar Loja")
+            ft.IconButton(icon=ft.Icons.SETTINGS, on_click=abrir_tela_configuracao, tooltip="Configurar Loja")
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN
     )
 
