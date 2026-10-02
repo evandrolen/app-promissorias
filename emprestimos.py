@@ -269,4 +269,4 @@ def main(page: ft.Page):
         page.update()
 
 # Executa o aplicativo diretamente no navegador
-ft.app(target=main, view=ft.AppView.WEB_BROWSER, assets_dir="assets")
+ft.run(main, view=ft.AppView.WEB_BROWSER, assets_dir="assets")
