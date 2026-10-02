@@ -112,7 +112,7 @@ def main(page: ft.Page):
             cidade_credor = page.client_storage.get("cidade_credor")
 
             # --- GERAÇÃO DO  ---
-             pdf = FPDF(orientation='P', unit='mm', format='A4')
+            pdf = FPDF(orientation='P', unit='mm', format='A4')
             .set_auto_page_break(auto=False) 
             
             meses = ["", "janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
