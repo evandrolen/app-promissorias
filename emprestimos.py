@@ -207,7 +207,7 @@ def main(page: ft.Page):
             if not os.path.exists("assets"):
                 os.makedirs("assets")
 
-            nome_arquivo = f"Promissorias_{nome.replace(' ', '_')}."
+            nome_arquivo = f"Promissorias_{nome.replace(' ', '_')}.pdf"
             caminho_arquivo = os.path.join("assets", nome_arquivo)
             pdf.output(caminho_arquivo)
             
