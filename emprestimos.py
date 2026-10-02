@@ -7,7 +7,7 @@ if not os.path.exists("assets"):
     os.makedirs("assets")
 
 def main(page: ft.Page):
-    page.title = "Gerador de Promissórias"
+    page.title = "Juan Imports"
     page.window_width = 380
     page.window_height = 740
     page.title = "Gerador de Empréstimos"
