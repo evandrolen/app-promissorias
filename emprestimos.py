@@ -31,7 +31,7 @@ def main(page: ft.Page):
             page.update()
 
     btn_salvar_config = ft.Button(
-        text="Salvar e Continuar", 
+        content="Salvar e Continuar", 
         on_click=salvar_configuracao,
         expand=True,
         style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
@@ -237,11 +237,11 @@ def main(page: ft.Page):
         page.update()
 
     btn_gerar = ft.Button(
-        text="Gerar Carnê e PDF", on_click=simular_emprestimo, expand=True,
+        content="Gerar Carnê e PDF", on_click=simular_emprestimo, expand=True,
         style=ft.ButtonStyle(bgcolor=ft.colors.GREEN_700, color=ft.colors.WHITE)
     )
     btn_limpar = ft.Button(
-        text="Limpar", on_click=limpar_campos, style=ft.ButtonStyle(bgcolor=ft.colors.GREY_300, color=ft.colors.BLACK)
+        content="Limpar", on_click=limpar_campos, style=ft.ButtonStyle(bgcolor=ft.colors.GREY_300, color=ft.colors.BLACK)
     )
 
     tela_principal = ft.Column([
