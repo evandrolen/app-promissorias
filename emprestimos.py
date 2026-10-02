@@ -208,7 +208,16 @@ def main(page: ft.Page):
             nome_arquivo = f"Promissorias_{nome.replace(' ', '_')}.pdf"
             caminho_arquivo = os.path.join("assets", nome_arquivo)
             pdf.output(caminho_arquivo)
-            page.launch_url(f"/{nome_arquivo}")
+            # Cria um botão azul no ecrã para descarregar/abrir o PDF
+            botao_pdf = ft.ElevatedButton(
+            text="Abrir PDF",
+            icon=ft.icons.PICTURE_AS_PDF,
+            url=f"/{nome_arquivo}",
+            url_target="_blank",
+            style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
+        )
+        page.add(botao_pdf)
+        page.update()
 
             resultado_texto.value = resumo + f"\n[ ✓ ] Promissória gerada! O download iniciará em instantes."
             resultado_texto.color = ft.colors.BLUE_GREY_900
