@@ -15,19 +15,29 @@ def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.LIGHT
     page.scroll = ft.ScrollMode.AUTO
 
+    # Mantemos os dados do credor em memória durante a sessão.
+    # Isso evita travamentos do client_storage em navegadores móveis.
+    config_atual = {
+        "nome_credor": "Dr. Evandro Lencione",
+        "cidade_credor": "Santa Rita do Passa Quatro - SP",
+    }
+
+    # FilePicker mantido vivo durante toda a sessão.
+    file_picker = ft.FilePicker()
+
     # ==========================================
     # TELA 1: CONFIGURAÇÃO INICIAL (DADOS DA LOJA)
     # ==========================================
     config_titulo = ft.Text("Configuração da Loja", size=24, weight=ft.FontWeight.BOLD)
     config_aviso = ft.Text("Estes dados sairão impressos em todas as Notas Promissórias como o Credor.")
     
-    loja_nome_input = ft.TextField(label="Nome do Credor ou Loja", value="Dr. Evandro Lencione")
-    loja_cidade_input = ft.TextField(label="Praça de Pagamento (Cidade - Estado)", value="Santa Rita do Passa Quatro - SP")
+    loja_nome_input = ft.TextField(label="Nome do Credor ou Loja", value=config_atual["nome_credor"])
+    loja_cidade_input = ft.TextField(label="Praça de Pagamento (Cidade - Estado)", value=config_atual["cidade_credor"])
     
     def salvar_configuracao(e):
         if loja_nome_input.value and loja_cidade_input.value:
-            page.client_storage.set("nome_credor", loja_nome_input.value)
-            page.client_storage.set("cidade_credor", loja_cidade_input.value)
+            config_atual["nome_credor"] = loja_nome_input.value.strip()
+            config_atual["cidade_credor"] = loja_cidade_input.value.strip()
             abrir_tela_principal()
         else:
             config_aviso.value = "Preencha todos os campos para continuar."
@@ -136,8 +146,8 @@ def main(page: ft.Page):
                 f"CRONOGRAMA DE PAGAMENTO:\n"
             )
 
-            nome_credor = page.client_storage.get("nome_credor")
-            cidade_credor = page.client_storage.get("cidade_credor")
+            nome_credor = config_atual["nome_credor"]
+            cidade_credor = config_atual["cidade_credor"]
 
             # --- GERAÇÃO DO  ---
             pdf = FPDF(orientation='P', unit='mm', format='A4')
@@ -248,7 +258,7 @@ def main(page: ft.Page):
 
             # Em Web/iPhone, src_bytes envia o arquivo para o navegador,
             # sem depender de URL em assets ou de nova aba.
-            await ft.FilePicker().save_file(
+            await file_picker.save_file(
                 file_name=nome_arquivo,
                 file_type=ft.FilePickerFileType.CUSTOM,
                 allowed_extensions=["pdf"],
@@ -314,11 +324,9 @@ def main(page: ft.Page):
 
     page.add(tela_configuracao, tela_principal)
 
-    if page.client_storage.contains_key("nome_credor"):
-        abrir_tela_principal()
-    else:
-        tela_configuracao.visible = True
-        page.update()
+    # Abre direto a tela principal usando os valores padrão.
+    # O ícone de engrenagem continua permitindo editar os dados do credor.
+    abrir_tela_principal()
 
 # Executa o aplicativo diretamente no navegador
 ft.app(target=main, view=ft.AppView.WEB_BROWSER, assets_dir="assets")
