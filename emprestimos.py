@@ -7,6 +7,21 @@ import asyncio
 if not os.path.exists("assets"):
     os.makedirs("assets")
 
+def converter_valor_brl(texto):
+    """Converte textos como 5000, 5.000,00 ou R$ 5.000,00 para float."""
+    if texto is None:
+        raise ValueError("Informe o valor emprestado.")
+    texto = str(texto).strip().replace("R$", "").replace(" ", "")
+    if not texto:
+        raise ValueError("Informe o valor emprestado.")
+    texto = texto.replace(".", "").replace(",", ".")
+    return float(texto)
+
+
+def formatar_valor_brl(valor):
+    """Formata número no padrão brasileiro: 1234.5 -> 1.234,50."""
+    return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
 def main(page: ft.Page):
     page.title = "Juan Imports"
     page.window.width = 380
@@ -18,8 +33,8 @@ def main(page: ft.Page):
     # Mantemos os dados do credor em memória durante a sessão.
     # Isso evita travamentos do client_storage em navegadores móveis.
     config_atual = {
-        "nome_credor": "Dr. Evandro Lencione",
-        "cidade_credor": "Santa Rita do Passa Quatro - SP",
+        "nome_credor": "Nome",
+        "cidade_credor": "Cidade - Estado",
     }
 
     # FilePicker mantido vivo durante toda a sessão.
@@ -81,9 +96,23 @@ def main(page: ft.Page):
     cep_input = ft.TextField(label="CEP", width=120, keyboard_type=ft.KeyboardType.NUMBER)
     linha_end2 = ft.Row([bairro_input, cep_input])
     
-    cidade_cliente_input = ft.TextField(label="Cidade - Estado", value="Santa Rita do Passa Quatro - SP")
+    cidade_cliente_input = ft.TextField(label="Cidade - Estado", value="Cidade - Estado")
 
-    valor_input = ft.TextField(label="Valor Emprestado (R$)", keyboard_type=ft.KeyboardType.NUMBER)
+    def formatar_campo_valor(e):
+        try:
+            if valor_input.value and valor_input.value.strip():
+                valor = converter_valor_brl(valor_input.value)
+                valor_input.value = formatar_valor_brl(valor)
+                page.update()
+        except ValueError:
+            # A validação completa continua sendo feita ao gerar o PDF.
+            pass
+
+    valor_input = ft.TextField(
+        label="Valor Emprestado (R$)",
+        keyboard_type=ft.KeyboardType.NUMBER,
+        on_blur=formatar_campo_valor,
+    )
     juros_input = ft.TextField(label="Juros Total do Período (%)", keyboard_type=ft.KeyboardType.NUMBER)
     parcelas_input = ft.TextField(label="Quantidade de Parcelas", keyboard_type=ft.KeyboardType.NUMBER)
     data_input = ft.TextField(label="Vencimento 1ª Parcela (DD/MM/AAAA)", keyboard_type=ft.KeyboardType.NUMBER)
@@ -120,8 +149,8 @@ def main(page: ft.Page):
 
             endereco_completo = f"{rua_input.value}, {numero_input.value}, {bairro_input.value}, {cidade_cliente_input.value}, {cep_input.value}"
             
-            valor_limpo = valor_input.value.replace('.', '').replace(',', '.')
-            valor = float(valor_limpo)
+            valor = converter_valor_brl(valor_input.value)
+            valor_input.value = formatar_valor_brl(valor)
             
             juros_limpo = juros_input.value.replace('.', '').replace(',', '.')
             juros = float(juros_limpo)
@@ -141,7 +170,7 @@ def main(page: ft.Page):
 
             resumo = (
                 f"Cliente: {nome}\n"
-                f"Total a Receber: R$ {valor_total:.2f}\n"
+                f"Total a Receber: R$ {formatar_valor_brl(valor_total)}\n"
                 f"{'-'*30}\n"
                 f"CRONOGRAMA DE PAGAMENTO:\n"
             )
@@ -162,7 +191,7 @@ def main(page: ft.Page):
                 data_formatada = vencimento.strftime('%d/%m/%Y')
                 valor_extenso = num2words(valor_parcela, lang='pt_BR', to='currency')
                 
-                resumo += f"Parcela {i+1}/{qtd_parcelas} - R$ {valor_parcela:.2f} - Venc: {data_formatada}\n"
+                resumo += f"Parcela {i+1}/{qtd_parcelas} - R$ {formatar_valor_brl(valor_parcela)} - Venc: {data_formatada}\n"
 
                 pdf.add_page()
                 
@@ -197,7 +226,7 @@ def main(page: ft.Page):
                     pdf.set_y(y_start + 23)
                     pdf.set_x(20)
                     pdf.cell(90, 6, f"Nº da Parcela: {i+1:02d}/{qtd_parcelas:02d}")
-                    pdf.cell(70, 6, f"Valor: R$ {valor_parcela:.2f}", align="R", ln=True)
+                    pdf.cell(70, 6, f"Valor: R$ {formatar_valor_brl(valor_parcela)}", align="R", ln=True)
                     
                     pdf.set_x(20)
                     pdf.cell(0, 6, f"Data de Vencimento: {data_formatada}", ln=True)
@@ -209,7 +238,7 @@ def main(page: ft.Page):
                     texto_promissoria = (
                         f"Aos {vencimento.strftime('%d')} dias do mês de {meses[vencimento.month]} de {vencimento.strftime('%Y')}, "
                         f"pagarei por esta única via de NOTA PROMISSÓRIA a {nome_credor}, ou à "
-                        f"sua ordem, a quantia de R$ {valor_parcela:.2f} ({valor_extenso}), em moeda corrente deste país."
+                        f"sua ordem, a quantia de R$ {formatar_valor_brl(valor_parcela)} ({valor_extenso}), em moeda corrente deste país."
                     )
                     pdf.multi_cell(170, 6, texto_promissoria, align="J")
                     
