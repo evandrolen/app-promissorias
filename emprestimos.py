@@ -33,8 +33,8 @@ def main(page: ft.Page):
     # Mantemos os dados do credor em memória durante a sessão.
     # Isso evita travamentos do client_storage em navegadores móveis.
     config_atual = {
-        "nome_credor": "",
-        "cidade_credor": "",
+        "nome_credor": ".",
+        "cidade_credor": ".",
     }
 
     # FilePicker mantido vivo durante toda a sessão.
@@ -96,7 +96,7 @@ def main(page: ft.Page):
     cep_input = ft.TextField(label="CEP", width=120, keyboard_type=ft.KeyboardType.NUMBER)
     linha_end2 = ft.Row([bairro_input, cep_input])
     
-    cidade_cliente_input = ft.TextField(label="Cidade - Estado", value="")
+    cidade_cliente_input = ft.TextField(label="Cidade - Estado", value=".")
 
     def formatar_campo_valor(e):
         try:
