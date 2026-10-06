@@ -79,6 +79,43 @@ def main(page: ft.Page):
     
     resultado_texto = ft.Text(size=15, weight=ft.FontWeight.W_500)
 
+    # Mantém em memória o último PDF gerado.
+    # Isso evita depender de abrir uma nova aba no Safari/iPhone.
+    pdf_download = {"bytes": None, "nome": None}
+
+    async def baixar_pdf(e):
+        try:
+            if not pdf_download["bytes"] or not pdf_download["nome"]:
+                resultado_texto.value = "Gere o PDF antes de tentar baixar."
+                resultado_texto.color = ft.colors.RED
+                page.update()
+                return
+
+            await ft.FilePicker().save_file(
+                file_name=pdf_download["nome"],
+                file_type=ft.FilePickerFileType.CUSTOM,
+                allowed_extensions=["pdf"],
+                src_bytes=pdf_download["bytes"],
+            )
+
+            resultado_texto.value += "\n[ ✓ ] Download do PDF iniciado."
+            resultado_texto.color = ft.colors.BLUE_GREY_900
+            page.update()
+
+        except Exception as erro:
+            resultado_texto.value = f"Erro ao baixar PDF: {erro}"
+            resultado_texto.color = ft.colors.RED
+            page.update()
+
+    btn_baixar_pdf = ft.ElevatedButton(
+        text="Baixar PDF",
+        icon=ft.icons.DOWNLOAD,
+        on_click=baixar_pdf,
+        visible=False,
+        expand=True,
+        style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
+    )
+
     def simular_emprestimo(e):
         try:
             nome = nome_input.value
@@ -204,24 +241,27 @@ def main(page: ft.Page):
                     pdf.set_x(20)
                     pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
 
-            # --- INÍCIO DA LÓGICA DE SALVAR PARA WEB ---
+            # --- SALVA O PDF E PREPARA O DOWNLOAD COMPATÍVEL COM WEB / IPHONE ---
             if not os.path.exists("assets"):
                 os.makedirs("assets")
 
             nome_arquivo = f"Promissorias_{nome.replace(' ', '_')}.pdf"
             caminho_arquivo = os.path.join("assets", nome_arquivo)
             pdf.output(caminho_arquivo)
-            
-            botao_pdf = ft.ElevatedButton(
-            text="Abrir PDF",
-            icon=ft.icons.PICTURE_AS_PDF,
-            url=f"/{nome_arquivo}",
-            url_target="_blank",
-            style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
-        )
-            page.add(botao_pdf)
-            
-            resultado_texto.value = resumo + f"\n[ ✓ ] Promissória gerada! Clique no botão Abrir PDF abaixo."
+
+            # Lê os bytes do PDF para que o FilePicker entregue o arquivo
+            # diretamente ao navegador/iOS, sem depender de nova aba.
+            with open(caminho_arquivo, "rb") as arquivo_pdf:
+                pdf_download["bytes"] = arquivo_pdf.read()
+
+            pdf_download["nome"] = nome_arquivo
+            btn_baixar_pdf.visible = True
+
+            resultado_texto.value = (
+                resumo
+                + "\n[ ✓ ] Promissória gerada com sucesso!"
+                + "\nToque em Baixar PDF para salvar o arquivo."
+            )
             resultado_texto.color = ft.colors.BLUE_GREY_900
             page.update()
 
@@ -242,6 +282,9 @@ def main(page: ft.Page):
         parcelas_input.value = ""
         data_input.value = ""
         resultado_texto.value = ""
+        pdf_download["bytes"] = None
+        pdf_download["nome"] = None
+        btn_baixar_pdf.visible = False
         page.update()
 
     btn_gerar = ft.ElevatedButton(
@@ -259,6 +302,7 @@ def main(page: ft.Page):
         ft.Divider(),
         valor_input, juros_input, parcelas_input, data_input,
         ft.Row([btn_gerar, btn_limpar]),
+        btn_baixar_pdf,
         ft.Divider(),
         resultado_texto
     ], visible=False)
