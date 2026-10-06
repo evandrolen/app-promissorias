@@ -1,18 +1,28 @@
 import flet as ft
+import base64
 from datetime import datetime, timedelta
 from fpdf import FPDF
 from num2words import num2words
-import os
-if not os.path.exists("assets"):
-    os.makedirs("assets")
 
+# ==========================================
+# FUNÇÕES DE APOIO
+# ==========================================
+def formata_brl(valor):
+    """Transforma 8000.0 em 8.000,00"""
+    return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+# ==========================================
+# SISTEMA PRINCIPAL (WEB)
+# ==========================================
 def main(page: ft.Page):
-    page.title = "Juan Imports"
     page.window_width = 380
-    page.window_height = 740
+    page.window_height = 760
     page.title = "Gerador de Empréstimos"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.scroll = ft.ScrollMode.AUTO
+
+    # Variável invisível para guardar o PDF gerado na memória do navegador
+    pdf_base64_atual = ft.Text(visible=False)
 
     # ==========================================
     # TELA 1: CONFIGURAÇÃO INICIAL (DADOS DA LOJA)
@@ -43,6 +53,7 @@ def main(page: ft.Page):
     tela_configuracao = ft.Column([
         config_titulo, config_aviso, loja_nome_input, loja_cidade_input, ft.Row([btn_salvar_config])
     ], visible=False)
+
 
     # ==========================================
     # TELA 2: GERADOR DE EMPRÉSTIMOS PRINCIPAL
@@ -79,6 +90,20 @@ def main(page: ft.Page):
     
     resultado_texto = ft.Text(size=15, weight=ft.FontWeight.W_500)
 
+    # --- FUNÇÕES DOS NOVOS BOTÕES WEB ---
+    def ver_pdf_web(e):
+        if pdf_base64_atual.value:
+            # "application/pdf" instrui o navegador a abrir para visualização
+            page.launch_url(f"data:application/pdf;base64,{pdf_base64_atual.value}")
+
+    def baixar_pdf_web(e):
+        if pdf_base64_atual.value:
+            # "octet-stream" força o navegador a fazer o download automático para a pasta Downloads
+            page.launch_url(f"data:application/octet-stream;base64,{pdf_base64_atual.value}")
+
+    btn_ver_pdf = ft.ElevatedButton("Ver PDF", on_click=ver_pdf_web, icon=ft.icons.PICTURE_AS_PDF, visible=False, expand=True, style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE))
+    btn_baixar_pdf = ft.ElevatedButton("Baixar (Downloads)", on_click=baixar_pdf_web, icon=ft.icons.DOWNLOAD, visible=False, expand=True, style=ft.ButtonStyle(bgcolor=ft.colors.DEEP_ORANGE_700, color=ft.colors.WHITE))
+
     def simular_emprestimo(e):
         try:
             nome = nome_input.value
@@ -106,7 +131,7 @@ def main(page: ft.Page):
 
             resumo = (
                 f"Cliente: {nome}\n"
-                f"Total a Receber: R$ {valor_total:.2f}\n"
+                f"Total a Receber: R$ {formata_brl(valor_total)}\n"
                 f"{'-'*30}\n"
                 f"CRONOGRAMA DE PAGAMENTO:\n"
             )
@@ -114,7 +139,7 @@ def main(page: ft.Page):
             nome_credor = page.client_storage.get("nome_credor")
             cidade_credor = page.client_storage.get("cidade_credor")
 
-            # --- GERAÇÃO DO  ---
+            # --- GERAÇÃO DO PDF NA MEMÓRIA ---
             pdf = FPDF(orientation='P', unit='mm', format='A4')
             pdf.set_auto_page_break(auto=False) 
             
@@ -127,10 +152,9 @@ def main(page: ft.Page):
                 data_formatada = vencimento.strftime('%d/%m/%Y')
                 valor_extenso = num2words(valor_parcela, lang='pt_BR', to='currency')
                 
-                resumo += f"Parcela {i+1}/{qtd_parcelas} - R$ {valor_parcela:.2f} - Venc: {data_formatada}\n"
+                resumo += f"Parcela {i+1}/{qtd_parcelas} - R$ {formata_brl(valor_parcela)} - Venc: {data_formatada}\n"
 
                 pdf.add_page()
-                
                 pdf.set_draw_color(180, 180, 180)
                 pdf.set_xy(10, 148)
                 pdf.set_font("Arial", 'I', 8)
@@ -143,7 +167,6 @@ def main(page: ft.Page):
 
                 for via in vias:
                     y_start = via["y"]
-                    
                     pdf.set_draw_color(0, 0, 0)
                     pdf.rect(15, y_start, 180, 120)
 
@@ -162,7 +185,7 @@ def main(page: ft.Page):
                     pdf.set_y(y_start + 23)
                     pdf.set_x(20)
                     pdf.cell(90, 6, f"Nº da Parcela: {i+1:02d}/{qtd_parcelas:02d}")
-                    pdf.cell(70, 6, f"Valor: R$ {valor_parcela:.2f}", align="R", ln=True)
+                    pdf.cell(70, 6, f"Valor: R$ {formata_brl(valor_parcela)}", align="R", ln=True)
                     
                     pdf.set_x(20)
                     pdf.cell(0, 6, f"Data de Vencimento: {data_formatada}", ln=True)
@@ -174,7 +197,7 @@ def main(page: ft.Page):
                     texto_promissoria = (
                         f"Aos {vencimento.strftime('%d')} dias do mês de {meses[vencimento.month]} de {vencimento.strftime('%Y')}, "
                         f"pagarei por esta única via de NOTA PROMISSÓRIA a {nome_credor}, ou à "
-                        f"sua ordem, a quantia de R$ {valor_parcela:.2f} ({valor_extenso}), em moeda corrente deste país."
+                        f"sua ordem, a quantia de R$ {formata_brl(valor_parcela)} ({valor_extenso}), em moeda corrente deste país."
                     )
                     pdf.multi_cell(170, 6, texto_promissoria, align="J")
                     
@@ -204,31 +227,32 @@ def main(page: ft.Page):
                     pdf.set_x(20)
                     pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
 
-            # --- INÍCIO DA LÓGICA DE SALVAR PARA WEB ---
-            if not os.path.exists("assets"):
-                os.makedirs("assets")
+            # COMPILAÇÃO DO PDF PARA WEB (Base64)
+            saida_pdf = pdf.output(dest='S')
+            
+            # Garantir compatibilidade com todas as versões da biblioteca fpdf na web
+            if isinstance(saida_pdf, str):
+                pdf_bytes = saida_pdf.encode('latin-1')
+            else:
+                pdf_bytes = bytes(saida_pdf)
+                
+            b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
+            
+            # Guardamos o código Base64 para os botões usarem
+            pdf_base64_atual.value = b64_pdf
+            
+            # Mostra os botões de Visualizar e Baixar
+            btn_ver_pdf.visible = True
+            btn_baixar_pdf.visible = True
 
-            nome_arquivo = f"Promissorias_{nome.replace(' ', '_')}.pdf"
-            caminho_arquivo = os.path.join("assets", nome_arquivo)
-            pdf.output(caminho_arquivo)
-            
-            botao_pdf = ft.ElevatedButton(
-            text="Abrir PDF",
-            icon=ft.icons.PICTURE_AS_PDF,
-            url=f"/{nome_arquivo}",
-            url_target="_blank",
-            style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
-        )
-            page.add(botao_pdf)
-            
-            resultado_texto.value = resumo + f"\n[ ✓ ] Promissória gerada! Clique no botão Abrir PDF abaixo."
+            resultado_texto.value = resumo + f"\n[ ✓ ] PDF gerado na memória! Use os botões abaixo para ver ou descarregar."
             resultado_texto.color = ft.colors.BLUE_GREY_900
-            page.update()
 
         except Exception as erro:
-            resultado_texto.value = f"Erro: Preencha os campos corretamente. Detalhe: {erro}"
+            resultado_texto.value = f"Erro: Preencha os campos. Detalhe: {erro}"
             resultado_texto.color = ft.colors.RED
-            page.update()
+
+        page.update()
 
     def limpar_campos(e):
         nome_input.value = ""
@@ -242,6 +266,9 @@ def main(page: ft.Page):
         parcelas_input.value = ""
         data_input.value = ""
         resultado_texto.value = ""
+        pdf_base64_atual.value = ""
+        btn_ver_pdf.visible = False
+        btn_baixar_pdf.visible = False
         page.update()
 
     btn_gerar = ft.ElevatedButton(
@@ -259,6 +286,7 @@ def main(page: ft.Page):
         ft.Divider(),
         valor_input, juros_input, parcelas_input, data_input,
         ft.Row([btn_gerar, btn_limpar]),
+        ft.Row([btn_ver_pdf, btn_baixar_pdf]), # Os novos botões da Web aparecem aqui!
         ft.Divider(),
         resultado_texto
     ], visible=False)
@@ -276,5 +304,4 @@ def main(page: ft.Page):
         tela_configuracao.visible = True
         page.update()
 
-# Executa o aplicativo diretamente no navegador
-ft.app(target=main, view=ft.AppView.WEB_BROWSER, assets_dir="assets")
+ft.app(target=main)
