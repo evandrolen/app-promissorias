@@ -1,5 +1,5 @@
 import flet as ft
-import base64
+import requests
 from datetime import datetime, timedelta
 from fpdf import FPDF
 from num2words import num2words
@@ -86,17 +86,22 @@ def main(page: ft.Page):
     
     resultado_texto = ft.Text(size=15, weight=ft.FontWeight.W_500)
 
-    # --- BOTÃO MESTRE (Sem função on_click. Usará o URL direto injetado pelo sistema) ---
+    # --- BOTÃO MESTRE (Com link real) ---
     btn_abrir_pdf = ft.ElevatedButton(
         text="Imprimir / Ver PDF", 
         icon=ft.icons.PRINT, 
         visible=False, 
         expand=True, 
+        url_target="_self", # Abre no mesmo separador para ativar o menu do iPhone
         style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
     )
 
     def simular_emprestimo(e):
         try:
+            resultado_texto.value = "A gerar e a enviar para a nuvem... Aguarde um momento."
+            resultado_texto.color = ft.colors.BLUE_GREY_500
+            page.update()
+
             nome = nome_input.value
             cpf = cpf_input.value
             endereco_completo = f"{rua_input.value}, {numero_input.value}, {bairro_input.value}, {cidade_cliente_input.value}, {cep_input.value}"
@@ -224,27 +229,28 @@ def main(page: ft.Page):
                     pdf.set_x(20)
                     pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
 
-            # --- PREPARAÇÃO DO PDF PARA O BOTÃO ---
+            # --- UPLOAD PARA A NUVEM (PLANO A) ---
             saida_pdf = pdf.output(dest='S')
+            pdf_bytes = saida_pdf.encode('latin-1') if isinstance(saida_pdf, str) else bytes(saida_pdf)
             
-            if isinstance(saida_pdf, str):
-                pdf_bytes = saida_pdf.encode('latin-1')
-            else:
-                pdf_bytes = bytes(saida_pdf)
-                
-            b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
+            # Envia o ficheiro para o servidor temporário
+            ficheiros = {'file': ('promissoria.pdf', pdf_bytes, 'application/pdf')}
+            resposta = requests.post('https://tmpfiles.org/api/v1/upload', files=ficheiros)
+            dados = resposta.json()
             
-            # MAGIA: Injetamos o ficheiro diretamente no botão Flet.
-            # Como não tem on_click, o navegador trata o botão como uma ligação HTML pura nativa.
-            btn_abrir_pdf.url = f"data:application/pdf;base64,{b64_pdf}"
-            btn_abrir_pdf.url_target = "_self" # _self é obrigatório no iPhone para passar a barreira
+            # Converte o link recebido num link de download/leitura direta
+            link_original = dados['data']['url']
+            link_direto = link_original.replace('tmpfiles.org/', 'tmpfiles.org/dl/')
+
+            # Atribui o link real da internet ao botão Flet
+            btn_abrir_pdf.url = link_direto
             btn_abrir_pdf.visible = True
 
-            resultado_texto.value = resumo + f"\n\n[ ✓ ] PDF Gerado! Clique no botão azul."
+            resultado_texto.value = resumo + f"\n\n[ ✓ ] Sucesso! Clique no botão azul para abrir."
             resultado_texto.color = ft.colors.BLUE_GREY_900
 
         except Exception as erro:
-            resultado_texto.value = f"Erro: Preencha os campos. Detalhe: {erro}"
+            resultado_texto.value = f"Erro: Preencha os campos ou falha na internet. Detalhe: {erro}"
             resultado_texto.color = ft.colors.RED
 
         page.update()
