@@ -144,3 +144,7 @@ def main(page: ft.Page):
 
             resumo = (
                 f"Cliente: {nome}\n"
+                f"Total a Receber: R$ {formata_brl(valor_total)}\n"
+                f"{'-'*30}\n"
+                f"CRONOGRAMA DE PAGAMENTO:\n"
+            )
