@@ -1,9 +1,16 @@
 import flet as ft
 import os
 import time
+import mimetypes
 from datetime import datetime, timedelta
 from fpdf import FPDF
 from num2words import num2words
+
+# ==========================================
+# O "PULO DO GATO" PARA O IPHONE:
+# Obriga o servidor a tratar o ficheiro estritamente como PDF oficial
+# ==========================================
+mimetypes.add_type('application/pdf', '.pdf')
 
 # ==========================================
 # FUNÇÕES DE APOIO
@@ -91,14 +98,20 @@ def main(page: ft.Page):
     
     resultado_texto = ft.Text(size=15, weight=ft.FontWeight.W_500)
 
-    # --- BOTÃO PASSO 2: O LINK NATIVO (O iPhone não bloqueia isto) ---
+    # --- BOTÃO PASSO 2: O LINK OFICIAL DO PDF ---
     btn_passo2_abrir = ft.ElevatedButton(
-        text="2º PASSO: Imprimir / Ver PDF", 
-        icon=ft.icons.PRINT, 
+        text="2º PASSO: Abrir Documento PDF", 
+        icon=ft.icons.PICTURE_AS_PDF, 
         visible=False, 
         expand=True, 
-        url_target="_blank", # Abre no modo nativo do iPhone
+        url_target="_blank",
         style=ft.ButtonStyle(bgcolor=ft.colors.GREEN_700, color=ft.colors.WHITE)
+    )
+
+    # Dica invisível que só aparece com o Botão 2
+    dica_iphone = ft.Text(
+        "DICA IPHONE: O PDF abre no ecrã. Para Enviar (WhatsApp) ou Imprimir, toque no ecrã e use o botão 'Partilhar' (Quadrado com Seta) na barra do Safari.", 
+        size=12, color=ft.colors.GREY_600, italic=True, visible=False
     )
 
     def simular_emprestimo(e):
@@ -230,22 +243,21 @@ def main(page: ft.Page):
                     pdf.set_x(20)
                     pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
 
-            # --- SALVAR PDF NA PASTA PÚBLICA DO RENDER ---
+            # --- SALVAR PDF NA PASTA PÚBLICA DO SERVIDOR ---
             id_unico = int(time.time())
             nome_arquivo_pdf = f"promissoria_{id_unico}.pdf"
             caminho_completo = os.path.join(pasta_assets, nome_arquivo_pdf)
             
             pdf.output(caminho_completo)
             
-            # --- ATIVA O BOTÃO 2 (O LINK NATIVO PARA O IPHONE) ---
-            # Ao atribuir o URL diretamente, o botão transforma-se num link HTML puro
+            # --- ATIVA O BOTÃO 2 E A DICA DO IPHONE ---
             btn_passo2_abrir.url = f"/{nome_arquivo_pdf}"
             btn_passo2_abrir.visible = True
+            dica_iphone.visible = True
 
-            # Atualiza o botão original para mostrar que deu certo
             btn_passo1_gerar.text = "1º PASSO: PDF Gerado! (Recalcular)"
             
-            resultado_texto.value = resumo + f"\n\n[ ✓ ] Tudo Pronto! Clique no Botão Verde abaixo para ver a Nota Promissória."
+            resultado_texto.value = resumo + f"\n\n[ ✓ ] Tudo Pronto! Clique no Botão Verde."
             resultado_texto.color = ft.colors.BLUE_GREY_900
 
         except Exception as erro:
@@ -261,6 +273,7 @@ def main(page: ft.Page):
         btn_passo1_gerar.text = "1º PASSO: Gerar Carnê e PDF"
         btn_passo2_abrir.url = ""
         btn_passo2_abrir.visible = False
+        dica_iphone.visible = False
         page.update()
 
     # --- BOTÃO PASSO 1: CALCULA E GERA ---
@@ -282,7 +295,8 @@ def main(page: ft.Page):
         ft.Divider(),
         valor_input, juros_input, parcelas_input, data_input,
         ft.Row([btn_passo1_gerar, btn_limpar]),
-        ft.Row([btn_passo2_abrir]), # O botão que o iPhone adora
+        ft.Row([btn_passo2_abrir]),
+        dica_iphone,
         ft.Divider(),
         resultado_texto
     ], visible=False)
@@ -300,5 +314,4 @@ def main(page: ft.Page):
         tela_configuracao.visible = True
         page.update()
 
-# O parâmetro 'assets_dir' instrui o Flet a expor a pasta de PDFs na internet!
 ft.app(target=main, assets_dir="assets")
