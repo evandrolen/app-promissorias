@@ -1,16 +1,9 @@
 import flet as ft
 import os
 import time
-import mimetypes
 from datetime import datetime, timedelta
 from fpdf import FPDF
 from num2words import num2words
-
-# ==========================================
-# O "PULO DO GATO" PARA O IPHONE:
-# Obriga o servidor a tratar o ficheiro estritamente como PDF oficial
-# ==========================================
-mimetypes.add_type('application/pdf', '.pdf')
 
 # ==========================================
 # FUNÇÕES DE APOIO
@@ -19,7 +12,7 @@ def formata_brl(valor):
     """Transforma 8000.0 em 8.000,00"""
     return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# Cria a pasta de ficheiros públicos para a web (necessário para o iPhone abrir)
+# Cria a pasta de ficheiros públicos para a web
 pasta_assets = os.path.join(os.getcwd(), "assets")
 os.makedirs(pasta_assets, exist_ok=True)
 
@@ -98,20 +91,30 @@ def main(page: ft.Page):
     
     resultado_texto = ft.Text(size=15, weight=ft.FontWeight.W_500)
 
-    # --- BOTÃO PASSO 2: O LINK OFICIAL DO PDF ---
-    btn_passo2_abrir = ft.ElevatedButton(
-        text="2º PASSO: Abrir Documento PDF", 
-        icon=ft.icons.PICTURE_AS_PDF, 
+    # --- INJEÇÃO DE JAVASCRIPT PARA O IPHONE ---
+    def forcar_download_iphone(e):
+        arquivo = page.session.get("pdf_atual")
+        cliente = page.session.get("nome_cliente")
+        if arquivo:
+            # Este código é enviado para o navegador do iPhone para forçar a ação "Descarregar"
+            js = f'''
+                var a = document.createElement("a");
+                a.href = "/{arquivo}";
+                a.download = "Promissoria_{cliente}.pdf";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            '''
+            page.evaluate_js(js)
+
+    # --- BOTÃO PASSO 2 (Forçar Download) ---
+    btn_passo2_baixar = ft.ElevatedButton(
+        text="2º PASSO: Baixar PDF (Descarregar)", 
+        icon=ft.icons.DOWNLOAD, 
+        on_click=forcar_download_iphone, 
         visible=False, 
         expand=True, 
-        url_target="_blank",
         style=ft.ButtonStyle(bgcolor=ft.colors.GREEN_700, color=ft.colors.WHITE)
-    )
-
-    # Dica invisível que só aparece com o Botão 2
-    dica_iphone = ft.Text(
-        "DICA IPHONE: O PDF abre no ecrã. Para Enviar (WhatsApp) ou Imprimir, toque no ecrã e use o botão 'Partilhar' (Quadrado com Seta) na barra do Safari.", 
-        size=12, color=ft.colors.GREY_600, italic=True, visible=False
     )
 
     def simular_emprestimo(e):
@@ -140,178 +143,4 @@ def main(page: ft.Page):
             valor_parcela = valor_total / qtd_parcelas
 
             resumo = (
-                f"Cliente: {nome}\n"
-                f"Total a Receber: R$ {formata_brl(valor_total)}\n"
-                f"{'-'*30}\n"
-                f"CRONOGRAMA DE PAGAMENTO:\n"
-            )
-
-            nome_credor = page.client_storage.get("nome_credor")
-            cidade_credor = page.client_storage.get("cidade_credor")
-
-            # --- GERAÇÃO DO PDF ---
-            pdf = FPDF(orientation='P', unit='mm', format='A4')
-            pdf.set_auto_page_break(auto=False) 
-            
-            meses = ["", "janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
-            hoje = datetime.now()
-            texto_emissao = f"{cidade_credor}, {hoje.day:02d} de {meses[hoje.month]} de {hoje.year}."
-
-            for i in range(qtd_parcelas):
-                vencimento = data_base + timedelta(days=30 * i)
-                data_formatada = vencimento.strftime('%d/%m/%Y')
-                valor_extenso = num2words(valor_parcela, lang='pt_BR', to='currency')
-                
-                resumo += f"Parcela {i+1}/{qtd_parcelas} - R$ {formata_brl(valor_parcela)} - Venc: {data_formatada}\n"
-
-                pdf.add_page()
-                pdf.set_draw_color(180, 180, 180)
-                pdf.set_xy(10, 148)
-                pdf.set_font("Arial", 'I', 8)
-                pdf.cell(0, 5, "- - - - - - - - - - - - - - - - - - - - - - - - - CORTAR AQUI - - - - - - - - - - - - - - - - - - - - - - - - -", ln=True, align="C")
-
-                vias = [
-                    {"y": 20, "titulo": "VIA DO CREDOR (Manter assinada em posse da loja)"},
-                    {"y": 160, "titulo": "VIA DO CLIENTE (Entregar como comprovante)"}
-                ]
-
-                for via in vias:
-                    y_start = via["y"]
-                    pdf.set_draw_color(0, 0, 0)
-                    pdf.rect(15, y_start, 180, 120)
-
-                    pdf.set_y(y_start + 4)
-                    pdf.set_font("Arial", 'B', 16)
-                    pdf.cell(0, 8, "NOTA PROMISSÓRIA", ln=True, align="C")
-                    
-                    pdf.set_y(y_start + 11)
-                    pdf.set_font("Arial", 'I', 9)
-                    pdf.cell(0, 5, via["titulo"], ln=True, align="C")
-                    
-                    pdf.set_y(y_start + 16)
-                    pdf.set_font("Arial", 'B', 12)
-                    pdf.cell(0, 5, "="*60, ln=True, align="C")
-
-                    pdf.set_y(y_start + 23)
-                    pdf.set_x(20)
-                    pdf.cell(90, 6, f"Nº da Parcela: {i+1:02d}/{qtd_parcelas:02d}")
-                    pdf.cell(70, 6, f"Valor: R$ {formata_brl(valor_parcela)}", align="R", ln=True)
-                    
-                    pdf.set_x(20)
-                    pdf.cell(0, 6, f"Data de Vencimento: {data_formatada}", ln=True)
-                    
-                    pdf.set_y(y_start + 38)
-                    pdf.set_x(20)
-                    pdf.set_font("Arial", '', 12)
-                    
-                    texto_promissoria = (
-                        f"Aos {vencimento.strftime('%d')} dias do mês de {meses[vencimento.month]} de {vencimento.strftime('%Y')}, "
-                        f"pagarei por esta única via de NOTA PROMISSÓRIA a {nome_credor}, ou à "
-                        f"sua ordem, a quantia de R$ {formata_brl(valor_parcela)} ({valor_extenso}), em moeda corrente deste país."
-                    )
-                    
-                    texto_promissoria_limpo = str(texto_promissoria).encode('latin-1', 'replace').decode('latin-1')
-                    pdf.multi_cell(170, 6, texto_promissoria_limpo, align="J")
-                    
-                    pdf.set_y(y_start + 63)
-                    pdf.set_x(20)
-                    pdf.set_font("Arial", 'B', 11)
-                    cidade_limpa = str(cidade_credor).encode('latin-1', 'replace').decode('latin-1')
-                    pdf.cell(0, 6, f"Praca de Pagamento: {cidade_limpa}", ln=True)
-                    
-                    pdf.set_y(y_start + 76)
-                    pdf.set_x(20)
-                    pdf.set_font("Arial", 'B', 10)
-                    pdf.cell(0, 5, "DADOS DO EMITENTE (Devedor)", ln=True)
-                    
-                    pdf.set_font("Arial", '', 10)
-                    pdf.set_x(20)
-                    nome_limpo = str(nome).encode('latin-1', 'replace').decode('latin-1')
-                    pdf.cell(0, 5, f"Nome: {nome_limpo}        CPF: {cpf}", ln=True)
-                    pdf.set_x(20)
-                    endereco_limpo = str(endereco_completo).encode('latin-1', 'replace').decode('latin-1')
-                    pdf.multi_cell(170, 5, f"Endereco: {endereco_limpo}")
-                    
-                    pdf.ln(2)
-                    pdf.set_x(20)
-                    emissao_limpa = str(texto_emissao).encode('latin-1', 'replace').decode('latin-1')
-                    pdf.cell(170, 5, emissao_limpa, ln=True, align="R")
-                    
-                    pdf.set_y(y_start + 105)
-                    pdf.set_x(20)
-                    pdf.cell(170, 6, "_______________________________________________________________", ln=True, align="C")
-                    pdf.set_x(20)
-                    pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
-
-            # --- SALVAR PDF NA PASTA PÚBLICA DO SERVIDOR ---
-            id_unico = int(time.time())
-            nome_arquivo_pdf = f"promissoria_{id_unico}.pdf"
-            caminho_completo = os.path.join(pasta_assets, nome_arquivo_pdf)
-            
-            pdf.output(caminho_completo)
-            
-            # --- ATIVA O BOTÃO 2 E A DICA DO IPHONE ---
-            btn_passo2_abrir.url = f"/{nome_arquivo_pdf}"
-            btn_passo2_abrir.visible = True
-            dica_iphone.visible = True
-
-            btn_passo1_gerar.text = "1º PASSO: PDF Gerado! (Recalcular)"
-            
-            resultado_texto.value = resumo + f"\n\n[ ✓ ] Tudo Pronto! Clique no Botão Verde."
-            resultado_texto.color = ft.colors.BLUE_GREY_900
-
-        except Exception as erro:
-            resultado_texto.value = f"Erro: Preencha os campos. Detalhe: {erro}"
-            resultado_texto.color = ft.colors.RED
-
-        page.update()
-
-    def limpar_campos(e):
-        nome_input.value = cpf_input.value = rua_input.value = numero_input.value = ""
-        bairro_input.value = cep_input.value = valor_input.value = juros_input.value = ""
-        parcelas_input.value = data_input.value = resultado_texto.value = ""
-        btn_passo1_gerar.text = "1º PASSO: Gerar Carnê e PDF"
-        btn_passo2_abrir.url = ""
-        btn_passo2_abrir.visible = False
-        dica_iphone.visible = False
-        page.update()
-
-    # --- BOTÃO PASSO 1: CALCULA E GERA ---
-    btn_passo1_gerar = ft.ElevatedButton(
-        text="1º PASSO: Gerar Carnê e PDF", 
-        on_click=simular_emprestimo, 
-        expand=True,
-        style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_800, color=ft.colors.WHITE)
-    )
-    
-    btn_limpar = ft.ElevatedButton(
-        text="Limpar", on_click=limpar_campos, style=ft.ButtonStyle(bgcolor=ft.colors.GREY_300, color=ft.colors.BLACK)
-    )
-
-    tela_principal = ft.Column([
-        titulo_linha,
-        nome_input, cpf_input,
-        linha_end1, linha_end2, cidade_cliente_input,
-        ft.Divider(),
-        valor_input, juros_input, parcelas_input, data_input,
-        ft.Row([btn_passo1_gerar, btn_limpar]),
-        ft.Row([btn_passo2_abrir]),
-        dica_iphone,
-        ft.Divider(),
-        resultado_texto
-    ], visible=False)
-
-    def abrir_tela_principal():
-        tela_configuracao.visible = False
-        tela_principal.visible = True
-        page.update()
-
-    page.add(tela_configuracao, tela_principal)
-
-    if page.client_storage.contains_key("nome_credor"):
-        abrir_tela_principal()
-    else:
-        tela_configuracao.visible = True
-        page.update()
-
-ft.app(target=main, assets_dir="assets")
+                f"Cliente: {nome}\n
