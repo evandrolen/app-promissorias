@@ -1,9 +1,16 @@
 import flet as ft
 import os
 import time
+import mimetypes
 from datetime import datetime, timedelta
 from fpdf import FPDF
 from num2words import num2words
+
+# ==========================================
+# O "PULO DO GATO" PARA O IPHONE:
+# Obriga o servidor a tratar o ficheiro estritamente como PDF oficial
+# ==========================================
+mimetypes.add_type('application/pdf', '.pdf')
 
 # ==========================================
 # FUNÇÕES DE APOIO
@@ -12,7 +19,7 @@ def formata_brl(valor):
     """Transforma 8000.0 em 8.000,00"""
     return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# Cria a pasta de ficheiros públicos para a web
+# Cria a pasta de ficheiros públicos para a web (necessário para o iPhone abrir)
 pasta_assets = os.path.join(os.getcwd(), "assets")
 os.makedirs(pasta_assets, exist_ok=True)
 
@@ -79,72 +86,4 @@ def main(page: ft.Page):
     linha_end1 = ft.Row([rua_input, numero_input])
     
     bairro_input = ft.TextField(label="Bairro", expand=True)
-    cep_input = ft.TextField(label="CEP", width=120, keyboard_type=ft.KeyboardType.NUMBER)
-    linha_end2 = ft.Row([bairro_input, cep_input])
-    
-    cidade_cliente_input = ft.TextField(label="Cidade - Estado", value="Santa Rita do Passa Quatro - SP")
-
-    valor_input = ft.TextField(label="Valor Emprestado (R$)", keyboard_type=ft.KeyboardType.NUMBER)
-    juros_input = ft.TextField(label="Juros Total do Período (%)", keyboard_type=ft.KeyboardType.NUMBER)
-    parcelas_input = ft.TextField(label="Quantidade de Parcelas", keyboard_type=ft.KeyboardType.NUMBER)
-    data_input = ft.TextField(label="Vencimento 1ª Parcela (DD/MM/AAAA)", keyboard_type=ft.KeyboardType.NUMBER)
-    
-    resultado_texto = ft.Text(size=15, weight=ft.FontWeight.W_500)
-
-    # --- INJEÇÃO DE JAVASCRIPT PARA O IPHONE ---
-    def forcar_download_iphone(e):
-        arquivo = page.session.get("pdf_atual")
-        cliente = page.session.get("nome_cliente")
-        if arquivo:
-            # Este código é enviado para o navegador do iPhone para forçar a ação "Descarregar"
-            js = f'''
-                var a = document.createElement("a");
-                a.href = "/{arquivo}";
-                a.download = "Promissoria_{cliente}.pdf";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            '''
-            page.evaluate_js(js)
-
-    # --- BOTÃO PASSO 2 (Forçar Download) ---
-    btn_passo2_baixar = ft.ElevatedButton(
-        text="2º PASSO: Baixar PDF (Descarregar)", 
-        icon=ft.icons.DOWNLOAD, 
-        on_click=forcar_download_iphone, 
-        visible=False, 
-        expand=True, 
-        style=ft.ButtonStyle(bgcolor=ft.colors.GREEN_700, color=ft.colors.WHITE)
-    )
-
-    def simular_emprestimo(e):
-        try:
-            nome = nome_input.value
-            cpf = cpf_input.value
-            endereco_completo = f"{rua_input.value}, {numero_input.value}, {bairro_input.value}, {cidade_cliente_input.value}, {cep_input.value}"
-            
-            valor_limpo = valor_input.value.replace('.', '').replace(',', '.')
-            valor = float(valor_limpo)
-            
-            juros_limpo = juros_input.value.replace('.', '').replace(',', '.')
-            juros = float(juros_limpo)
-            
-            qtd_parcelas = int(parcelas_input.value)
-            
-            data_str = data_input.value.replace('/', '').replace('-', '')
-            if len(data_str) == 8:
-                data_str = f"{data_str[:2]}/{data_str[2:4]}/{data_str[4:]}"
-                data_input.value = data_str 
-            
-            data_base = datetime.strptime(data_str, "%d/%m/%Y")
-            
-            valor_juros = valor * (juros / 100)
-            valor_total = valor + valor_juros
-            valor_parcela = valor_total / qtd_parcelas
-
-            resumo = (
-                f"Cliente: {nome}\n"
-                f"Total a Receber: R$ {formata_brl(valor_total)}\n"
-                f"{'-'*30}\n"
-                f"CRONOGRAMA DE PAGAMENTO:\n"
-            )
+    cep_input = ft.TextField(label="CEP", width=120
