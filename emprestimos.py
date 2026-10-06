@@ -9,8 +9,8 @@ if not os.path.exists("assets"):
 
 def main(page: ft.Page):
     page.title = "Juan Imports"
-    page.window_width = 380
-    page.window_height = 740
+    page.window.width = 380
+    page.window.height = 740
     page.title = "Gerador de Empréstimos"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.scroll = ft.ScrollMode.AUTO
@@ -41,14 +41,14 @@ def main(page: ft.Page):
             abrir_tela_principal()
         else:
             config_aviso.value = "Preencha todos os campos para continuar."
-            config_aviso.color = ft.colors.RED
+            config_aviso.color = ft.Colors.RED
             page.update()
 
-    btn_salvar_config = ft.ElevatedButton(
-        text="Salvar e Continuar", 
+    btn_salvar_config = ft.Button(
+        content="Salvar e Continuar", 
         on_click=salvar_configuracao,
         expand=True,
-        style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
+        style=ft.ButtonStyle(bgcolor=ft.Colors.BLUE_700, color=ft.Colors.WHITE)
     )
 
     tela_configuracao = ft.Column([
@@ -66,7 +66,7 @@ def main(page: ft.Page):
     titulo_linha = ft.Row(
         [
             ft.Text("Novo Empréstimo", size=24, weight=ft.FontWeight.BOLD),
-            ft.IconButton(icon=ft.icons.SETTINGS, on_click=abrir_tela_configuracao, tooltip="Configurar Loja")
+            ft.IconButton(icon=ft.Icons.SETTINGS, on_click=abrir_tela_configuracao, tooltip="Configurar Loja")
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN
     )
 
@@ -103,9 +103,9 @@ def main(page: ft.Page):
             # Dá retorno visual imediato. No celular o resultado ficava abaixo da tela
             # e parecia que o botão não fazia nada.
             btn_gerar.disabled = True
-            btn_gerar.text = "Gerando PDF..."
+            btn_gerar.content = "Gerando PDF..."
             status_geracao.value = "Gerando as promissórias, aguarde..."
-            status_geracao.color = ft.colors.BLUE_700
+            status_geracao.color = ft.Colors.BLUE_700
             status_geracao.visible = True
             page.update()
             await asyncio.sleep(0.05)
@@ -252,7 +252,7 @@ def main(page: ft.Page):
                 pdf_bytes = arquivo_pdf.read()
 
             status_geracao.value = "PDF pronto. Abrindo o download..."
-            status_geracao.color = ft.colors.GREEN_700
+            status_geracao.color = ft.Colors.GREEN_700
             page.update()
             await asyncio.sleep(0.05)
 
@@ -266,19 +266,19 @@ def main(page: ft.Page):
             )
 
             status_geracao.value = "PDF gerado. Se o Safari solicitar confirmação, escolha Baixar."
-            status_geracao.color = ft.colors.GREEN_700
+            status_geracao.color = ft.Colors.GREEN_700
             resultado_texto.value = resumo
-            resultado_texto.color = ft.colors.BLUE_GREY_900
+            resultado_texto.color = ft.Colors.BLUE_GREY_900
 
         except Exception as erro:
             status_geracao.value = f"Não foi possível gerar o PDF: {erro}"
-            status_geracao.color = ft.colors.RED
+            status_geracao.color = ft.Colors.RED
             status_geracao.visible = True
             resultado_texto.value = ""
 
         finally:
             btn_gerar.disabled = False
-            btn_gerar.text = "Gerar Carnê e PDF"
+            btn_gerar.content = "Gerar Carnê e PDF"
             page.update()
 
     def limpar_campos(e):
@@ -297,12 +297,12 @@ def main(page: ft.Page):
         status_geracao.visible = False
         page.update()
 
-    btn_gerar = ft.ElevatedButton(
-        text="Gerar Carnê e PDF", on_click=simular_emprestimo, expand=True,
-        style=ft.ButtonStyle(bgcolor=ft.colors.GREEN_700, color=ft.colors.WHITE)
+    btn_gerar = ft.Button(
+        content="Gerar Carnê e PDF", on_click=simular_emprestimo, expand=True,
+        style=ft.ButtonStyle(bgcolor=ft.Colors.GREEN_700, color=ft.Colors.WHITE)
     )
-    btn_limpar = ft.ElevatedButton(
-        text="Limpar", on_click=limpar_campos, style=ft.ButtonStyle(bgcolor=ft.colors.GREY_300, color=ft.colors.BLACK)
+    btn_limpar = ft.Button(
+        content="Limpar", on_click=limpar_campos, style=ft.ButtonStyle(bgcolor=ft.Colors.GREY_300, color=ft.Colors.BLACK)
     )
 
     tela_principal = ft.Column([
@@ -329,4 +329,4 @@ def main(page: ft.Page):
     abrir_tela_principal()
 
 # Executa o aplicativo diretamente no navegador
-ft.app(target=main, view=ft.AppView.WEB_BROWSER, assets_dir="assets")
+ft.run(main, view=ft.AppView.WEB_BROWSER, assets_dir="assets")
