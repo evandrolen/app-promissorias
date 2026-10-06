@@ -317,6 +317,7 @@ def main(page: ft.Page):
         numero_input.value = ""
         bairro_input.value = ""
         cep_input.value = ""
+        cidade_cliente_input.value = ""
         valor_input.value = ""
         juros_input.value = ""
         parcelas_input.value = ""
