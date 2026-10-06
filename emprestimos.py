@@ -1,5 +1,5 @@
 import flet as ft
-import base64
+import os
 from datetime import datetime, timedelta
 from fpdf import FPDF
 from num2words import num2words
@@ -11,6 +11,10 @@ def formata_brl(valor):
     """Transforma 8000.0 em 8.000,00"""
     return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
+# Cria a pasta de ficheiros públicos para a web (necessário para o iPhone abrir)
+pasta_assets = os.path.join(os.getcwd(), "assets")
+os.makedirs(pasta_assets, exist_ok=True)
+
 # ==========================================
 # SISTEMA PRINCIPAL (WEB)
 # ==========================================
@@ -21,8 +25,8 @@ def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.LIGHT
     page.scroll = ft.ScrollMode.AUTO
 
-    # Variável invisível para guardar o PDF gerado na memória do navegador
-    pdf_base64_atual = ft.Text(visible=False)
+    # Variável invisível para guardar o link do PDF gerado
+    pdf_url_atual = ft.Text(visible=False)
 
     # ==========================================
     # TELA 1: CONFIGURAÇÃO INICIAL (DADOS DA LOJA)
@@ -30,8 +34,8 @@ def main(page: ft.Page):
     config_titulo = ft.Text("Configuração da Loja", size=24, weight=ft.FontWeight.BOLD)
     config_aviso = ft.Text("Estes dados sairão impressos em todas as Notas Promissórias como o Credor.")
     
-    loja_nome_input = ft.TextField(label="Nome do Credor ou Loja", value="Dr. Evandro Lencione")
-    loja_cidade_input = ft.TextField(label="Praça de Pagamento (Cidade - Estado)", value="Santa Rita do Passa Quatro - SP")
+    loja_nome_input = ft.TextField(label="Nome do Credor ou Loja", value="Cadastre seu nome completo")
+    loja_cidade_input = ft.TextField(label="Praça de Pagamento (Cidade - Estado)", value="Cadastre a Cidade e Estado")
     
     def salvar_configuracao(e):
         if loja_nome_input.value and loja_cidade_input.value:
@@ -53,7 +57,6 @@ def main(page: ft.Page):
     tela_configuracao = ft.Column([
         config_titulo, config_aviso, loja_nome_input, loja_cidade_input, ft.Row([btn_salvar_config])
     ], visible=False)
-
 
     # ==========================================
     # TELA 2: GERADOR DE EMPRÉSTIMOS PRINCIPAL
@@ -81,7 +84,7 @@ def main(page: ft.Page):
     cep_input = ft.TextField(label="CEP", width=120, keyboard_type=ft.KeyboardType.NUMBER)
     linha_end2 = ft.Row([bairro_input, cep_input])
     
-    cidade_cliente_input = ft.TextField(label="Cidade - Estado", value="Santa Rita do Passa Quatro - SP")
+    cidade_cliente_input = ft.TextField(label="Cidade - Estado", value="Cadastre a Cidade e Estado")
 
     valor_input = ft.TextField(label="Valor Emprestado (R$)", keyboard_type=ft.KeyboardType.NUMBER)
     juros_input = ft.TextField(label="Juros Total do Período (%)", keyboard_type=ft.KeyboardType.NUMBER)
@@ -90,11 +93,10 @@ def main(page: ft.Page):
     
     resultado_texto = ft.Text(size=15, weight=ft.FontWeight.W_500)
 
-    # --- FUNÇÃO WEB: ABRIR O PDF NO NAVEGADOR ---
+    # --- FUNÇÃO WEB: ABRIR O PDF COMO LINK TRADICIONAL (Para o iPhone aceitar) ---
     def abrir_pdf_web(e):
-        if pdf_base64_atual.value:
-            # O '_self' força a abertura no mesmo separador, contornando o bloqueio de popups dos telemóveis
-            page.launch_url(f"data:application/pdf;base64,{pdf_base64_atual.value}", web_window_name="_self")
+        if pdf_url_atual.value:
+            page.launch_url(pdf_url_atual.value, web_window_name="_blank")
 
     btn_abrir_pdf = ft.ElevatedButton(
         text="Abrir PDF (Imprimir / Baixar)", 
@@ -140,7 +142,7 @@ def main(page: ft.Page):
             nome_credor = page.client_storage.get("nome_credor")
             cidade_credor = page.client_storage.get("cidade_credor")
 
-            # --- GERAÇÃO DO PDF NA MEMÓRIA ---
+            # --- GERAÇÃO DO PDF ---
             pdf = FPDF(orientation='P', unit='mm', format='A4')
             pdf.set_auto_page_break(auto=False) 
             
@@ -201,7 +203,6 @@ def main(page: ft.Page):
                         f"sua ordem, a quantia de R$ {formata_brl(valor_parcela)} ({valor_extenso}), em moeda corrente deste país."
                     )
                     
-                    # Converte o texto para evitar erros de acentos no FPDF
                     texto_promissoria_limpo = str(texto_promissoria).encode('latin-1', 'replace').decode('latin-1')
                     pdf.multi_cell(170, 6, texto_promissoria_limpo, align="J")
                     
@@ -235,18 +236,16 @@ def main(page: ft.Page):
                     pdf.set_x(20)
                     pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
 
-            # COMPILAÇÃO DO PDF PARA WEB (Base64)
-            saida_pdf = pdf.output(dest='S')
+            # --- SALVAR PDF NA PASTA PÚBLICA (ASSETS) ---
+            # Gera um nome único usando a hora exata para o navegador não confundir ficheiros velhos
+            id_unico = int(datetime.now().timestamp())
+            nome_arquivo_pdf = f"promissoria_{id_unico}.pdf"
+            caminho_completo = os.path.join(pasta_assets, nome_arquivo_pdf)
             
-            if isinstance(saida_pdf, str):
-                pdf_bytes = saida_pdf.encode('latin-1')
-            else:
-                pdf_bytes = bytes(saida_pdf)
-                
-            b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
+            pdf.output(caminho_completo)
             
-            # Guardamos o código Base64 e ativamos o botão de Abrir
-            pdf_base64_atual.value = b64_pdf
+            # O link para o ficheiro fica apenas a barra e o nome, pois o Flet partilha a pasta assets
+            pdf_url_atual.value = f"/{nome_arquivo_pdf}"
             btn_abrir_pdf.visible = True
 
             resultado_texto.value = resumo + f"\n\n[ ✓ ] PDF Gerado! Clique no botão azul para abrir, imprimir ou baixar."
@@ -261,7 +260,7 @@ def main(page: ft.Page):
     def limpar_campos(e):
         nome_input.value = cpf_input.value = rua_input.value = numero_input.value = ""
         bairro_input.value = cep_input.value = valor_input.value = juros_input.value = ""
-        parcelas_input.value = data_input.value = resultado_texto.value = pdf_base64_atual.value = ""
+        parcelas_input.value = data_input.value = resultado_texto.value = pdf_url_atual.value = ""
         btn_abrir_pdf.visible = False
         page.update()
 
@@ -298,4 +297,5 @@ def main(page: ft.Page):
         tela_configuracao.visible = True
         page.update()
 
-ft.app(target=main)
+# O parâmetro 'assets_dir' é fundamental para partilhar os PDF's para a Web!
+ft.app(target=main, assets_dir="assets")
