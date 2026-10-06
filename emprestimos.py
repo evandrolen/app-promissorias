@@ -1,5 +1,5 @@
 import flet as ft
-import os
+import base64
 from datetime import datetime, timedelta
 from fpdf import FPDF
 from num2words import num2words
@@ -10,10 +10,6 @@ from num2words import num2words
 def formata_brl(valor):
     """Transforma 8000.0 em 8.000,00"""
     return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-# Cria a pasta de ficheiros públicos para a web (necessário para o iPhone abrir)
-pasta_assets = os.path.join(os.getcwd(), "assets")
-os.makedirs(pasta_assets, exist_ok=True)
 
 # ==========================================
 # SISTEMA PRINCIPAL (WEB)
@@ -90,10 +86,10 @@ def main(page: ft.Page):
     
     resultado_texto = ft.Text(size=15, weight=ft.FontWeight.W_500)
 
-    # --- O BOTÃO MESTRE (Sem on_click, usará a propriedade url nativa) ---
+    # --- BOTÃO MESTRE (Sem função on_click. Usará o URL direto injetado pelo sistema) ---
     btn_abrir_pdf = ft.ElevatedButton(
-        text="Abrir PDF (Imprimir / Baixar)", 
-        icon=ft.icons.PICTURE_AS_PDF, 
+        text="Imprimir / Ver PDF", 
+        icon=ft.icons.PRINT, 
         visible=False, 
         expand=True, 
         style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
@@ -228,19 +224,23 @@ def main(page: ft.Page):
                     pdf.set_x(20)
                     pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
 
-            # --- SALVAR PDF NA PASTA PÚBLICA (ASSETS) ---
-            id_unico = int(datetime.now().timestamp())
-            nome_arquivo_pdf = f"promissoria_{id_unico}.pdf"
-            caminho_completo = os.path.join(pasta_assets, nome_arquivo_pdf)
+            # --- PREPARAÇÃO DO PDF PARA O BOTÃO ---
+            saida_pdf = pdf.output(dest='S')
             
-            pdf.output(caminho_completo)
+            if isinstance(saida_pdf, str):
+                pdf_bytes = saida_pdf.encode('latin-1')
+            else:
+                pdf_bytes = bytes(saida_pdf)
+                
+            b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
             
-            # MAGIA PARA O IPHONE: Em vez de chamar uma função, damos um URL real ao botão!
-            btn_abrir_pdf.url = f"/{nome_arquivo_pdf}"
-            btn_abrir_pdf.url_target = "_self"  # Abre de forma nativa num novo separador
+            # MAGIA: Injetamos o ficheiro diretamente no botão Flet.
+            # Como não tem on_click, o navegador trata o botão como uma ligação HTML pura nativa.
+            btn_abrir_pdf.url = f"data:application/pdf;base64,{b64_pdf}"
+            btn_abrir_pdf.url_target = "_self" # _self é obrigatório no iPhone para passar a barreira
             btn_abrir_pdf.visible = True
 
-            resultado_texto.value = resumo + f"\n\n[ ✓ ] PDF Gerado! Clique no botão azul para abrir."
+            resultado_texto.value = resumo + f"\n\n[ ✓ ] PDF Gerado! Clique no botão azul."
             resultado_texto.color = ft.colors.BLUE_GREY_900
 
         except Exception as erro:
@@ -290,5 +290,4 @@ def main(page: ft.Page):
         tela_configuracao.visible = True
         page.update()
 
-# O parâmetro 'assets_dir' é fundamental para partilhar os PDF's para a Web!
-ft.app(target=main, assets_dir="assets")
+ft.app(target=main)
