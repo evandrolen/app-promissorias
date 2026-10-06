@@ -1,5 +1,6 @@
 import flet as ft
-import requests
+import os
+import time
 from datetime import datetime, timedelta
 from fpdf import FPDF
 from num2words import num2words
@@ -10,6 +11,10 @@ from num2words import num2words
 def formata_brl(valor):
     """Transforma 8000.0 em 8.000,00"""
     return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+# Cria a pasta de ficheiros públicos para a web (necessário para o iPhone abrir)
+pasta_assets = os.path.join(os.getcwd(), "assets")
+os.makedirs(pasta_assets, exist_ok=True)
 
 # ==========================================
 # SISTEMA PRINCIPAL (WEB)
@@ -22,7 +27,7 @@ def main(page: ft.Page):
     page.scroll = ft.ScrollMode.AUTO
 
     # ==========================================
-    # TELA 1: CONFIGURAÇÃO INICIAL (DADOS DA LOJA)
+    # TELA 1: CONFIGURAÇÃO INICIAL
     # ==========================================
     config_titulo = ft.Text("Configuração da Loja", size=24, weight=ft.FontWeight.BOLD)
     config_aviso = ft.Text("Estes dados sairão impressos em todas as Notas Promissórias como o Credor.")
@@ -86,22 +91,18 @@ def main(page: ft.Page):
     
     resultado_texto = ft.Text(size=15, weight=ft.FontWeight.W_500)
 
-    # --- BOTÃO MESTRE (Com link real) ---
-    btn_abrir_pdf = ft.ElevatedButton(
-        text="Imprimir / Ver PDF", 
+    # --- BOTÃO PASSO 2: O LINK NATIVO (O iPhone não bloqueia isto) ---
+    btn_passo2_abrir = ft.ElevatedButton(
+        text="2º PASSO: Imprimir / Ver PDF", 
         icon=ft.icons.PRINT, 
         visible=False, 
         expand=True, 
-        url_target="_self", # Abre no mesmo separador para ativar o menu do iPhone
-        style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
+        url_target="_blank", # Abre no modo nativo do iPhone
+        style=ft.ButtonStyle(bgcolor=ft.colors.GREEN_700, color=ft.colors.WHITE)
     )
 
     def simular_emprestimo(e):
         try:
-            resultado_texto.value = "A gerar e a enviar para a nuvem... Aguarde um momento."
-            resultado_texto.color = ft.colors.BLUE_GREY_500
-            page.update()
-
             nome = nome_input.value
             cpf = cpf_input.value
             endereco_completo = f"{rua_input.value}, {numero_input.value}, {bairro_input.value}, {cidade_cliente_input.value}, {cep_input.value}"
@@ -229,28 +230,26 @@ def main(page: ft.Page):
                     pdf.set_x(20)
                     pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
 
-            # --- UPLOAD PARA A NUVEM (PLANO A) ---
-            saida_pdf = pdf.output(dest='S')
-            pdf_bytes = saida_pdf.encode('latin-1') if isinstance(saida_pdf, str) else bytes(saida_pdf)
+            # --- SALVAR PDF NA PASTA PÚBLICA DO RENDER ---
+            id_unico = int(time.time())
+            nome_arquivo_pdf = f"promissoria_{id_unico}.pdf"
+            caminho_completo = os.path.join(pasta_assets, nome_arquivo_pdf)
             
-            # Envia o ficheiro para o servidor temporário
-            ficheiros = {'file': ('promissoria.pdf', pdf_bytes, 'application/pdf')}
-            resposta = requests.post('https://tmpfiles.org/api/v1/upload', files=ficheiros)
-            dados = resposta.json()
+            pdf.output(caminho_completo)
             
-            # Converte o link recebido num link de download/leitura direta
-            link_original = dados['data']['url']
-            link_direto = link_original.replace('tmpfiles.org/', 'tmpfiles.org/dl/')
+            # --- ATIVA O BOTÃO 2 (O LINK NATIVO PARA O IPHONE) ---
+            # Ao atribuir o URL diretamente, o botão transforma-se num link HTML puro
+            btn_passo2_abrir.url = f"/{nome_arquivo_pdf}"
+            btn_passo2_abrir.visible = True
 
-            # Atribui o link real da internet ao botão Flet
-            btn_abrir_pdf.url = link_direto
-            btn_abrir_pdf.visible = True
-
-            resultado_texto.value = resumo + f"\n\n[ ✓ ] Sucesso! Clique no botão azul para abrir."
+            # Atualiza o botão original para mostrar que deu certo
+            btn_passo1_gerar.text = "1º PASSO: PDF Gerado! (Recalcular)"
+            
+            resultado_texto.value = resumo + f"\n\n[ ✓ ] Tudo Pronto! Clique no Botão Verde abaixo para ver a Nota Promissória."
             resultado_texto.color = ft.colors.BLUE_GREY_900
 
         except Exception as erro:
-            resultado_texto.value = f"Erro: Preencha os campos ou falha na internet. Detalhe: {erro}"
+            resultado_texto.value = f"Erro: Preencha os campos. Detalhe: {erro}"
             resultado_texto.color = ft.colors.RED
 
         page.update()
@@ -259,14 +258,19 @@ def main(page: ft.Page):
         nome_input.value = cpf_input.value = rua_input.value = numero_input.value = ""
         bairro_input.value = cep_input.value = valor_input.value = juros_input.value = ""
         parcelas_input.value = data_input.value = resultado_texto.value = ""
-        btn_abrir_pdf.url = ""
-        btn_abrir_pdf.visible = False
+        btn_passo1_gerar.text = "1º PASSO: Gerar Carnê e PDF"
+        btn_passo2_abrir.url = ""
+        btn_passo2_abrir.visible = False
         page.update()
 
-    btn_gerar = ft.ElevatedButton(
-        text="Gerar Carnê e PDF", on_click=simular_emprestimo, expand=True,
-        style=ft.ButtonStyle(bgcolor=ft.colors.GREEN_700, color=ft.colors.WHITE)
+    # --- BOTÃO PASSO 1: CALCULA E GERA ---
+    btn_passo1_gerar = ft.ElevatedButton(
+        text="1º PASSO: Gerar Carnê e PDF", 
+        on_click=simular_emprestimo, 
+        expand=True,
+        style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_800, color=ft.colors.WHITE)
     )
+    
     btn_limpar = ft.ElevatedButton(
         text="Limpar", on_click=limpar_campos, style=ft.ButtonStyle(bgcolor=ft.colors.GREY_300, color=ft.colors.BLACK)
     )
@@ -277,8 +281,8 @@ def main(page: ft.Page):
         linha_end1, linha_end2, cidade_cliente_input,
         ft.Divider(),
         valor_input, juros_input, parcelas_input, data_input,
-        ft.Row([btn_gerar, btn_limpar]),
-        ft.Row([btn_abrir_pdf]),
+        ft.Row([btn_passo1_gerar, btn_limpar]),
+        ft.Row([btn_passo2_abrir]), # O botão que o iPhone adora
         ft.Divider(),
         resultado_texto
     ], visible=False)
@@ -296,4 +300,5 @@ def main(page: ft.Page):
         tela_configuracao.visible = True
         page.update()
 
-ft.app(target=main)
+# O parâmetro 'assets_dir' instrui o Flet a expor a pasta de PDFs na internet!
+ft.app(target=main, assets_dir="assets")
