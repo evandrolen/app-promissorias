@@ -172,4 +172,4 @@ def main(page: ft.Page):
                     pdf.rect(15, y_start, 180, 120)
 
                     pdf.set_y(y_start + 4)
-                    pdf.set_font("Arial", 'B', 16
+                    pdf.set_font("Arial", 'B', 16)
