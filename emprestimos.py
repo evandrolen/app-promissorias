@@ -237,7 +237,7 @@ def main(page: ft.Page):
             
             # MAGIA PARA O IPHONE: Em vez de chamar uma função, damos um URL real ao botão!
             btn_abrir_pdf.url = f"/{nome_arquivo_pdf}"
-            btn_abrir_pdf.url_target = "_blank"  # Abre de forma nativa num novo separador
+            btn_abrir_pdf.url_target = "_self"  # Abre de forma nativa num novo separador
             btn_abrir_pdf.visible = True
 
             resultado_texto.value = resumo + f"\n\n[ ✓ ] PDF Gerado! Clique no botão azul para abrir."
