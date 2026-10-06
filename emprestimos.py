@@ -30,8 +30,8 @@ def main(page: ft.Page):
     config_titulo = ft.Text("Configuração da Loja", size=24, weight=ft.FontWeight.BOLD)
     config_aviso = ft.Text("Estes dados sairão impressos em todas as Notas Promissórias como o Credor.")
     
-    loja_nome_input = ft.TextField(label="Nome do Credor ou Loja", value="Dr. Evandro Lencione")
-    loja_cidade_input = ft.TextField(label="Praça de Pagamento (Cidade - Estado)", value="Santa Rita do Passa Quatro - SP")
+    loja_nome_input = ft.TextField(label="Nome do Credor ou Loja", value="Cadastrar seu nome completo")
+    loja_cidade_input = ft.TextField(label="Praça de Pagamento (Cidade - Estado)", value="Cidade e Estado")
     
     def salvar_configuracao(e):
         if loja_nome_input.value and loja_cidade_input.value:
@@ -93,8 +93,8 @@ def main(page: ft.Page):
     # --- FUNÇÃO WEB: ABRIR O PDF NO NAVEGADOR ---
     def abrir_pdf_web(e):
         if pdf_base64_atual.value:
-            # O navegador abre o PDF nativamente, permitindo salvar e imprimir com total segurança
-            page.launch_url(f"data:application/pdf;base64,{pdf_base64_atual.value}")
+            # O '_self' força a abertura no mesmo separador, contornando o bloqueio de popups dos telemóveis
+            page.launch_url(f"data:application/pdf;base64,{pdf_base64_atual.value}", web_window_name="_self")
 
     btn_abrir_pdf = ft.ElevatedButton(
         text="Abrir PDF (Imprimir / Baixar)", 
@@ -172,130 +172,4 @@ def main(page: ft.Page):
                     pdf.rect(15, y_start, 180, 120)
 
                     pdf.set_y(y_start + 4)
-                    pdf.set_font("Arial", 'B', 16)
-                    pdf.cell(0, 8, "NOTA PROMISSÓRIA", ln=True, align="C")
-                    
-                    pdf.set_y(y_start + 11)
-                    pdf.set_font("Arial", 'I', 9)
-                    pdf.cell(0, 5, via["titulo"], ln=True, align="C")
-                    
-                    pdf.set_y(y_start + 16)
-                    pdf.set_font("Arial", 'B', 12)
-                    pdf.cell(0, 5, "="*60, ln=True, align="C")
-
-                    pdf.set_y(y_start + 23)
-                    pdf.set_x(20)
-                    pdf.cell(90, 6, f"Nº da Parcela: {i+1:02d}/{qtd_parcelas:02d}")
-                    pdf.cell(70, 6, f"Valor: R$ {formata_brl(valor_parcela)}", align="R", ln=True)
-                    
-                    pdf.set_x(20)
-                    pdf.cell(0, 6, f"Data de Vencimento: {data_formatada}", ln=True)
-                    
-                    pdf.set_y(y_start + 38)
-                    pdf.set_x(20)
-                    pdf.set_font("Arial", '', 12)
-                    
-                    texto_promissoria = (
-                        f"Aos {vencimento.strftime('%d')} dias do mês de {meses[vencimento.month]} de {vencimento.strftime('%Y')}, "
-                        f"pagarei por esta única via de NOTA PROMISSÓRIA a {nome_credor}, ou à "
-                        f"sua ordem, a quantia de R$ {formata_brl(valor_parcela)} ({valor_extenso}), em moeda corrente deste país."
-                    )
-                    
-                    # Converte o texto para evitar erros de acentos no FPDF
-                    texto_promissoria_limpo = str(texto_promissoria).encode('latin-1', 'replace').decode('latin-1')
-                    pdf.multi_cell(170, 6, texto_promissoria_limpo, align="J")
-                    
-                    pdf.set_y(y_start + 63)
-                    pdf.set_x(20)
-                    pdf.set_font("Arial", 'B', 11)
-                    cidade_limpa = str(cidade_credor).encode('latin-1', 'replace').decode('latin-1')
-                    pdf.cell(0, 6, f"Praca de Pagamento: {cidade_limpa}", ln=True)
-                    
-                    pdf.set_y(y_start + 76)
-                    pdf.set_x(20)
-                    pdf.set_font("Arial", 'B', 10)
-                    pdf.cell(0, 5, "DADOS DO EMITENTE (Devedor)", ln=True)
-                    
-                    pdf.set_font("Arial", '', 10)
-                    pdf.set_x(20)
-                    nome_limpo = str(nome).encode('latin-1', 'replace').decode('latin-1')
-                    pdf.cell(0, 5, f"Nome: {nome_limpo}        CPF: {cpf}", ln=True)
-                    pdf.set_x(20)
-                    endereco_limpo = str(endereco_completo).encode('latin-1', 'replace').decode('latin-1')
-                    pdf.multi_cell(170, 5, f"Endereco: {endereco_limpo}")
-                    
-                    pdf.ln(2)
-                    pdf.set_x(20)
-                    emissao_limpa = str(texto_emissao).encode('latin-1', 'replace').decode('latin-1')
-                    pdf.cell(170, 5, emissao_limpa, ln=True, align="R")
-                    
-                    pdf.set_y(y_start + 105)
-                    pdf.set_x(20)
-                    pdf.cell(170, 6, "_______________________________________________________________", ln=True, align="C")
-                    pdf.set_x(20)
-                    pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
-
-            # COMPILAÇÃO DO PDF PARA WEB (Base64)
-            saida_pdf = pdf.output(dest='S')
-            
-            if isinstance(saida_pdf, str):
-                pdf_bytes = saida_pdf.encode('latin-1')
-            else:
-                pdf_bytes = bytes(saida_pdf)
-                
-            b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-            
-            # Guardamos o código Base64 e ativamos o botão de Abrir
-            pdf_base64_atual.value = b64_pdf
-            btn_abrir_pdf.visible = True
-
-            resultado_texto.value = resumo + f"\n\n[ ✓ ] PDF Gerado! Clique no botão azul para abrir, imprimir ou baixar."
-            resultado_texto.color = ft.colors.BLUE_GREY_900
-
-        except Exception as erro:
-            resultado_texto.value = f"Erro: Preencha os campos. Detalhe: {erro}"
-            resultado_texto.color = ft.colors.RED
-
-        page.update()
-
-    def limpar_campos(e):
-        nome_input.value = cpf_input.value = rua_input.value = numero_input.value = ""
-        bairro_input.value = cep_input.value = valor_input.value = juros_input.value = ""
-        parcelas_input.value = data_input.value = resultado_texto.value = pdf_base64_atual.value = ""
-        btn_abrir_pdf.visible = False
-        page.update()
-
-    btn_gerar = ft.ElevatedButton(
-        text="Gerar Carnê e PDF", on_click=simular_emprestimo, expand=True,
-        style=ft.ButtonStyle(bgcolor=ft.colors.GREEN_700, color=ft.colors.WHITE)
-    )
-    btn_limpar = ft.ElevatedButton(
-        text="Limpar", on_click=limpar_campos, style=ft.ButtonStyle(bgcolor=ft.colors.GREY_300, color=ft.colors.BLACK)
-    )
-
-    tela_principal = ft.Column([
-        titulo_linha,
-        nome_input, cpf_input,
-        linha_end1, linha_end2, cidade_cliente_input,
-        ft.Divider(),
-        valor_input, juros_input, parcelas_input, data_input,
-        ft.Row([btn_gerar, btn_limpar]),
-        ft.Row([btn_abrir_pdf]), # O novo botão mestre entra aqui!
-        ft.Divider(),
-        resultado_texto
-    ], visible=False)
-
-    def abrir_tela_principal():
-        tela_configuracao.visible = False
-        tela_principal.visible = True
-        page.update()
-
-    page.add(tela_configuracao, tela_principal)
-
-    if page.client_storage.contains_key("nome_credor"):
-        abrir_tela_principal()
-    else:
-        tela_configuracao.visible = True
-        page.update()
-
-ft.app(target=main)
+                    pdf.set_font("Arial", 'B', 16
