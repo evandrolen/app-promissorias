@@ -143,4 +143,4 @@ def main(page: ft.Page):
             valor_parcela = valor_total / qtd_parcelas
 
             resumo = (
-                f"Cliente: {nome}\n
+                f"Cliente: {nome}\n"
