@@ -96,7 +96,7 @@ def main(page: ft.Page):
     cep_input = ft.TextField(label="CEP", width=120, keyboard_type=ft.KeyboardType.NUMBER)
     linha_end2 = ft.Row([bairro_input, cep_input])
     
-    cidade_cliente_input = ft.TextField(label="Cidade - Estado", value="Cidade - Estado")
+    cidade_cliente_input = ft.TextField(label="Cidade - Estado", value="")
 
     def formatar_campo_valor(e):
         try:
