@@ -90,19 +90,20 @@ def main(page: ft.Page):
     
     resultado_texto = ft.Text(size=15, weight=ft.FontWeight.W_500)
 
-    # --- FUNÇÕES DOS NOVOS BOTÕES WEB ---
-    def ver_pdf_web(e):
+    # --- FUNÇÃO WEB: ABRIR O PDF NO NAVEGADOR ---
+    def abrir_pdf_web(e):
         if pdf_base64_atual.value:
-            # "application/pdf" instrui o navegador a abrir para visualização
+            # O navegador abre o PDF nativamente, permitindo salvar e imprimir com total segurança
             page.launch_url(f"data:application/pdf;base64,{pdf_base64_atual.value}")
 
-    def baixar_pdf_web(e):
-        if pdf_base64_atual.value:
-            # "octet-stream" força o navegador a fazer o download automático para a pasta Downloads
-            page.launch_url(f"data:application/octet-stream;base64,{pdf_base64_atual.value}")
-
-    btn_ver_pdf = ft.ElevatedButton("Ver PDF", on_click=ver_pdf_web, icon=ft.icons.PICTURE_AS_PDF, visible=False, expand=True, style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE))
-    btn_baixar_pdf = ft.ElevatedButton("Baixar (Downloads)", on_click=baixar_pdf_web, icon=ft.icons.DOWNLOAD, visible=False, expand=True, style=ft.ButtonStyle(bgcolor=ft.colors.DEEP_ORANGE_700, color=ft.colors.WHITE))
+    btn_abrir_pdf = ft.ElevatedButton(
+        text="Abrir PDF (Imprimir / Baixar)", 
+        on_click=abrir_pdf_web, 
+        icon=ft.icons.PICTURE_AS_PDF, 
+        visible=False, 
+        expand=True, 
+        style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
+    )
 
     def simular_emprestimo(e):
         try:
@@ -199,12 +200,16 @@ def main(page: ft.Page):
                         f"pagarei por esta única via de NOTA PROMISSÓRIA a {nome_credor}, ou à "
                         f"sua ordem, a quantia de R$ {formata_brl(valor_parcela)} ({valor_extenso}), em moeda corrente deste país."
                     )
-                    pdf.multi_cell(170, 6, texto_promissoria, align="J")
+                    
+                    # Converte o texto para evitar erros de acentos no FPDF
+                    texto_promissoria_limpo = str(texto_promissoria).encode('latin-1', 'replace').decode('latin-1')
+                    pdf.multi_cell(170, 6, texto_promissoria_limpo, align="J")
                     
                     pdf.set_y(y_start + 63)
                     pdf.set_x(20)
                     pdf.set_font("Arial", 'B', 11)
-                    pdf.cell(0, 6, f"Praça de Pagamento: {cidade_credor}", ln=True)
+                    cidade_limpa = str(cidade_credor).encode('latin-1', 'replace').decode('latin-1')
+                    pdf.cell(0, 6, f"Praca de Pagamento: {cidade_limpa}", ln=True)
                     
                     pdf.set_y(y_start + 76)
                     pdf.set_x(20)
@@ -213,13 +218,16 @@ def main(page: ft.Page):
                     
                     pdf.set_font("Arial", '', 10)
                     pdf.set_x(20)
-                    pdf.cell(0, 5, f"Nome: {nome}        CPF: {cpf}", ln=True)
+                    nome_limpo = str(nome).encode('latin-1', 'replace').decode('latin-1')
+                    pdf.cell(0, 5, f"Nome: {nome_limpo}        CPF: {cpf}", ln=True)
                     pdf.set_x(20)
-                    pdf.multi_cell(170, 5, f"Endereço: {endereco_completo}")
+                    endereco_limpo = str(endereco_completo).encode('latin-1', 'replace').decode('latin-1')
+                    pdf.multi_cell(170, 5, f"Endereco: {endereco_limpo}")
                     
                     pdf.ln(2)
                     pdf.set_x(20)
-                    pdf.cell(170, 5, texto_emissao, ln=True, align="R")
+                    emissao_limpa = str(texto_emissao).encode('latin-1', 'replace').decode('latin-1')
+                    pdf.cell(170, 5, emissao_limpa, ln=True, align="R")
                     
                     pdf.set_y(y_start + 105)
                     pdf.set_x(20)
@@ -230,7 +238,6 @@ def main(page: ft.Page):
             # COMPILAÇÃO DO PDF PARA WEB (Base64)
             saida_pdf = pdf.output(dest='S')
             
-            # Garantir compatibilidade com todas as versões da biblioteca fpdf na web
             if isinstance(saida_pdf, str):
                 pdf_bytes = saida_pdf.encode('latin-1')
             else:
@@ -238,14 +245,11 @@ def main(page: ft.Page):
                 
             b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
             
-            # Guardamos o código Base64 para os botões usarem
+            # Guardamos o código Base64 e ativamos o botão de Abrir
             pdf_base64_atual.value = b64_pdf
-            
-            # Mostra os botões de Visualizar e Baixar
-            btn_ver_pdf.visible = True
-            btn_baixar_pdf.visible = True
+            btn_abrir_pdf.visible = True
 
-            resultado_texto.value = resumo + f"\n[ ✓ ] PDF gerado na memória! Use os botões abaixo para ver ou descarregar."
+            resultado_texto.value = resumo + f"\n\n[ ✓ ] PDF Gerado! Clique no botão azul para abrir, imprimir ou baixar."
             resultado_texto.color = ft.colors.BLUE_GREY_900
 
         except Exception as erro:
@@ -255,20 +259,10 @@ def main(page: ft.Page):
         page.update()
 
     def limpar_campos(e):
-        nome_input.value = ""
-        cpf_input.value = ""
-        rua_input.value = ""
-        numero_input.value = ""
-        bairro_input.value = ""
-        cep_input.value = ""
-        valor_input.value = ""
-        juros_input.value = ""
-        parcelas_input.value = ""
-        data_input.value = ""
-        resultado_texto.value = ""
-        pdf_base64_atual.value = ""
-        btn_ver_pdf.visible = False
-        btn_baixar_pdf.visible = False
+        nome_input.value = cpf_input.value = rua_input.value = numero_input.value = ""
+        bairro_input.value = cep_input.value = valor_input.value = juros_input.value = ""
+        parcelas_input.value = data_input.value = resultado_texto.value = pdf_base64_atual.value = ""
+        btn_abrir_pdf.visible = False
         page.update()
 
     btn_gerar = ft.ElevatedButton(
@@ -286,7 +280,7 @@ def main(page: ft.Page):
         ft.Divider(),
         valor_input, juros_input, parcelas_input, data_input,
         ft.Row([btn_gerar, btn_limpar]),
-        ft.Row([btn_ver_pdf, btn_baixar_pdf]), # Os novos botões da Web aparecem aqui!
+        ft.Row([btn_abrir_pdf]), # O novo botão mestre entra aqui!
         ft.Divider(),
         resultado_texto
     ], visible=False)
