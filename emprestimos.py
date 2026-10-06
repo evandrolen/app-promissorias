@@ -25,17 +25,14 @@ def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.LIGHT
     page.scroll = ft.ScrollMode.AUTO
 
-    # Variável invisível para guardar o link do PDF gerado
-    pdf_url_atual = ft.Text(visible=False)
-
     # ==========================================
     # TELA 1: CONFIGURAÇÃO INICIAL (DADOS DA LOJA)
     # ==========================================
     config_titulo = ft.Text("Configuração da Loja", size=24, weight=ft.FontWeight.BOLD)
     config_aviso = ft.Text("Estes dados sairão impressos em todas as Notas Promissórias como o Credor.")
     
-    loja_nome_input = ft.TextField(label="Nome do Credor ou Loja", value="Cadastre seu nome completo")
-    loja_cidade_input = ft.TextField(label="Praça de Pagamento (Cidade - Estado)", value="Cadastre a Cidade e Estado")
+    loja_nome_input = ft.TextField(label="Nome do Credor ou Loja", value="Dr. Evandro Lencione")
+    loja_cidade_input = ft.TextField(label="Praça de Pagamento (Cidade - Estado)", value="Santa Rita do Passa Quatro - SP")
     
     def salvar_configuracao(e):
         if loja_nome_input.value and loja_cidade_input.value:
@@ -84,7 +81,7 @@ def main(page: ft.Page):
     cep_input = ft.TextField(label="CEP", width=120, keyboard_type=ft.KeyboardType.NUMBER)
     linha_end2 = ft.Row([bairro_input, cep_input])
     
-    cidade_cliente_input = ft.TextField(label="Cidade - Estado", value="Cadastre a Cidade e Estado")
+    cidade_cliente_input = ft.TextField(label="Cidade - Estado", value="Santa Rita do Passa Quatro - SP")
 
     valor_input = ft.TextField(label="Valor Emprestado (R$)", keyboard_type=ft.KeyboardType.NUMBER)
     juros_input = ft.TextField(label="Juros Total do Período (%)", keyboard_type=ft.KeyboardType.NUMBER)
@@ -93,14 +90,9 @@ def main(page: ft.Page):
     
     resultado_texto = ft.Text(size=15, weight=ft.FontWeight.W_500)
 
-    # --- FUNÇÃO WEB: ABRIR O PDF COMO LINK TRADICIONAL (Para o iPhone aceitar) ---
-    def abrir_pdf_web(e):
-        if pdf_url_atual.value:
-            page.launch_url(pdf_url_atual.value, web_window_name="_blank")
-
+    # --- O BOTÃO MESTRE (Sem on_click, usará a propriedade url nativa) ---
     btn_abrir_pdf = ft.ElevatedButton(
         text="Abrir PDF (Imprimir / Baixar)", 
-        on_click=abrir_pdf_web, 
         icon=ft.icons.PICTURE_AS_PDF, 
         visible=False, 
         expand=True, 
@@ -237,18 +229,18 @@ def main(page: ft.Page):
                     pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
 
             # --- SALVAR PDF NA PASTA PÚBLICA (ASSETS) ---
-            # Gera um nome único usando a hora exata para o navegador não confundir ficheiros velhos
             id_unico = int(datetime.now().timestamp())
             nome_arquivo_pdf = f"promissoria_{id_unico}.pdf"
             caminho_completo = os.path.join(pasta_assets, nome_arquivo_pdf)
             
             pdf.output(caminho_completo)
             
-            # O link para o ficheiro fica apenas a barra e o nome, pois o Flet partilha a pasta assets
-            pdf_url_atual.value = f"/{nome_arquivo_pdf}"
+            # MAGIA PARA O IPHONE: Em vez de chamar uma função, damos um URL real ao botão!
+            btn_abrir_pdf.url = f"/{nome_arquivo_pdf}"
+            btn_abrir_pdf.url_target = "_blank"  # Abre de forma nativa num novo separador
             btn_abrir_pdf.visible = True
 
-            resultado_texto.value = resumo + f"\n\n[ ✓ ] PDF Gerado! Clique no botão azul para abrir, imprimir ou baixar."
+            resultado_texto.value = resumo + f"\n\n[ ✓ ] PDF Gerado! Clique no botão azul para abrir."
             resultado_texto.color = ft.colors.BLUE_GREY_900
 
         except Exception as erro:
@@ -260,7 +252,8 @@ def main(page: ft.Page):
     def limpar_campos(e):
         nome_input.value = cpf_input.value = rua_input.value = numero_input.value = ""
         bairro_input.value = cep_input.value = valor_input.value = juros_input.value = ""
-        parcelas_input.value = data_input.value = resultado_texto.value = pdf_url_atual.value = ""
+        parcelas_input.value = data_input.value = resultado_texto.value = ""
+        btn_abrir_pdf.url = ""
         btn_abrir_pdf.visible = False
         page.update()
 
