@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from fpdf import FPDF
 from num2words import num2words
 import os
+import asyncio
 if not os.path.exists("assets"):
     os.makedirs("assets")
 
@@ -79,47 +80,34 @@ def main(page: ft.Page):
     
     resultado_texto = ft.Text(size=15, weight=ft.FontWeight.W_500)
 
-    # Mantém em memória o último PDF gerado.
-    # Isso evita depender de abrir uma nova aba no Safari/iPhone.
-    pdf_download = {"bytes": None, "nome": None}
-
-    async def baixar_pdf(e):
-        try:
-            if not pdf_download["bytes"] or not pdf_download["nome"]:
-                resultado_texto.value = "Gere o PDF antes de tentar baixar."
-                resultado_texto.color = ft.colors.RED
-                page.update()
-                return
-
-            await ft.FilePicker().save_file(
-                file_name=pdf_download["nome"],
-                file_type=ft.FilePickerFileType.CUSTOM,
-                allowed_extensions=["pdf"],
-                src_bytes=pdf_download["bytes"],
-            )
-
-            resultado_texto.value += "\n[ ✓ ] Download do PDF iniciado."
-            resultado_texto.color = ft.colors.BLUE_GREY_900
-            page.update()
-
-        except Exception as erro:
-            resultado_texto.value = f"Erro ao baixar PDF: {erro}"
-            resultado_texto.color = ft.colors.RED
-            page.update()
-
-    btn_baixar_pdf = ft.ElevatedButton(
-        text="Baixar PDF",
-        icon=ft.icons.DOWNLOAD,
-        on_click=baixar_pdf,
+    # Mensagem de status fica antes dos botões para ser visível no iPhone.
+    status_geracao = ft.Text(
+        value="",
+        size=14,
+        weight=ft.FontWeight.W_500,
         visible=False,
-        expand=True,
-        style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_700, color=ft.colors.WHITE)
     )
 
-    def simular_emprestimo(e):
+    async def simular_emprestimo(e):
         try:
-            nome = nome_input.value
-            cpf = cpf_input.value
+            # Dá retorno visual imediato. No celular o resultado ficava abaixo da tela
+            # e parecia que o botão não fazia nada.
+            btn_gerar.disabled = True
+            btn_gerar.text = "Gerando PDF..."
+            status_geracao.value = "Gerando as promissórias, aguarde..."
+            status_geracao.color = ft.colors.BLUE_700
+            status_geracao.visible = True
+            page.update()
+            await asyncio.sleep(0.05)
+
+            nome = nome_input.value.strip()
+            cpf = cpf_input.value.strip()
+
+            if not nome:
+                raise ValueError("Informe o nome do cliente.")
+            if not cpf:
+                raise ValueError("Informe o CPF do cliente.")
+
             endereco_completo = f"{rua_input.value}, {numero_input.value}, {bairro_input.value}, {cidade_cliente_input.value}, {cep_input.value}"
             
             valor_limpo = valor_input.value.replace('.', '').replace(',', '.')
@@ -241,33 +229,46 @@ def main(page: ft.Page):
                     pdf.set_x(20)
                     pdf.cell(170, 6, "Assinatura do Emitente", ln=True, align="C")
 
-            # --- SALVA O PDF E PREPARA O DOWNLOAD COMPATÍVEL COM WEB / IPHONE ---
+            # --- GERA O ARQUIVO E ENTREGA DIRETAMENTE AO IPHONE / NAVEGADOR ---
             if not os.path.exists("assets"):
                 os.makedirs("assets")
 
-            nome_arquivo = f"Promissorias_{nome.replace(' ', '_')}.pdf"
+            nome_seguro = "_".join(nome.split()) or "cliente"
+            nome_arquivo = f"Promissorias_{nome_seguro}.pdf"
             caminho_arquivo = os.path.join("assets", nome_arquivo)
             pdf.output(caminho_arquivo)
 
-            # Lê os bytes do PDF para que o FilePicker entregue o arquivo
-            # diretamente ao navegador/iOS, sem depender de nova aba.
             with open(caminho_arquivo, "rb") as arquivo_pdf:
-                pdf_download["bytes"] = arquivo_pdf.read()
+                pdf_bytes = arquivo_pdf.read()
 
-            pdf_download["nome"] = nome_arquivo
-            btn_baixar_pdf.visible = True
-
-            resultado_texto.value = (
-                resumo
-                + "\n[ ✓ ] Promissória gerada com sucesso!"
-                + "\nToque em Baixar PDF para salvar o arquivo."
-            )
-            resultado_texto.color = ft.colors.BLUE_GREY_900
+            status_geracao.value = "PDF pronto. Abrindo o download..."
+            status_geracao.color = ft.colors.GREEN_700
             page.update()
+            await asyncio.sleep(0.05)
+
+            # Em Web/iPhone, src_bytes envia o arquivo para o navegador,
+            # sem depender de URL em assets ou de nova aba.
+            await ft.FilePicker().save_file(
+                file_name=nome_arquivo,
+                file_type=ft.FilePickerFileType.CUSTOM,
+                allowed_extensions=["pdf"],
+                src_bytes=pdf_bytes,
+            )
+
+            status_geracao.value = "PDF gerado. Se o Safari solicitar confirmação, escolha Baixar."
+            status_geracao.color = ft.colors.GREEN_700
+            resultado_texto.value = resumo
+            resultado_texto.color = ft.colors.BLUE_GREY_900
 
         except Exception as erro:
-            resultado_texto.value = f"Erro: Preencha os campos corretamente. Detalhe: {erro}"
-            resultado_texto.color = ft.colors.RED
+            status_geracao.value = f"Não foi possível gerar o PDF: {erro}"
+            status_geracao.color = ft.colors.RED
+            status_geracao.visible = True
+            resultado_texto.value = ""
+
+        finally:
+            btn_gerar.disabled = False
+            btn_gerar.text = "Gerar Carnê e PDF"
             page.update()
 
     def limpar_campos(e):
@@ -282,9 +283,8 @@ def main(page: ft.Page):
         parcelas_input.value = ""
         data_input.value = ""
         resultado_texto.value = ""
-        pdf_download["bytes"] = None
-        pdf_download["nome"] = None
-        btn_baixar_pdf.visible = False
+        status_geracao.value = ""
+        status_geracao.visible = False
         page.update()
 
     btn_gerar = ft.ElevatedButton(
@@ -301,8 +301,8 @@ def main(page: ft.Page):
         linha_end1, linha_end2, cidade_cliente_input,
         ft.Divider(),
         valor_input, juros_input, parcelas_input, data_input,
+        status_geracao,
         ft.Row([btn_gerar, btn_limpar]),
-        btn_baixar_pdf,
         ft.Divider(),
         resultado_texto
     ], visible=False)
