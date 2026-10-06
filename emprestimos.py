@@ -23,7 +23,7 @@ def formatar_valor_brl(valor):
     return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 def main(page: ft.Page):
-    page.title = "Juan Imports"
+    page.title = "Juan Imports®"
     page.window.width = 380
     page.window.height = 740
     page.title = "Gerador de Empréstimos"
@@ -33,8 +33,8 @@ def main(page: ft.Page):
     # Mantemos os dados do credor em memória durante a sessão.
     # Isso evita travamentos do client_storage em navegadores móveis.
     config_atual = {
-        "nome_credor": "Nome",
-        "cidade_credor": "Cidade - Estado",
+        "nome_credor": "",
+        "cidade_credor": "",
     }
 
     # FilePicker mantido vivo durante toda a sessão.
