@@ -86,4 +86,55 @@ def main(page: ft.Page):
     linha_end1 = ft.Row([rua_input, numero_input])
     
     bairro_input = ft.TextField(label="Bairro", expand=True)
-    cep_input = ft.TextField(label="CEP", width=120
+    cep_input = ft.TextField(label="CEP", width=120, keyboard_type=ft.KeyboardType.NUMBER)
+    linha_end2 = ft.Row([bairro_input, cep_input])
+    
+    cidade_cliente_input = ft.TextField(label="Cidade - Estado", value="Santa Rita do Passa Quatro - SP")
+
+    valor_input = ft.TextField(label="Valor Emprestado (R$)", keyboard_type=ft.KeyboardType.NUMBER)
+    juros_input = ft.TextField(label="Juros Total do Período (%)", keyboard_type=ft.KeyboardType.NUMBER)
+    parcelas_input = ft.TextField(label="Quantidade de Parcelas", keyboard_type=ft.KeyboardType.NUMBER)
+    data_input = ft.TextField(label="Vencimento 1ª Parcela (DD/MM/AAAA)", keyboard_type=ft.KeyboardType.NUMBER)
+    
+    resultado_texto = ft.Text(size=15, weight=ft.FontWeight.W_500)
+
+    # --- BOTÃO PASSO 2: O LINK OFICIAL DO PDF ---
+    btn_passo2_abrir = ft.ElevatedButton(
+        text="2º PASSO: Abrir Documento PDF", 
+        icon=ft.icons.PICTURE_AS_PDF, 
+        visible=False, 
+        expand=True, 
+        url_target="_blank",
+        style=ft.ButtonStyle(bgcolor=ft.colors.GREEN_700, color=ft.colors.WHITE)
+    )
+
+    # Dica invisível que só aparece com o Botão 2
+    dica_iphone = ft.Text(
+        "DICA IPHONE: O PDF abre no ecrã. Para Enviar (WhatsApp) ou Imprimir, toque no ecrã e use o botão 'Partilhar' (Quadrado com Seta) na barra inferior do Safari.", 
+        size=12, color=ft.colors.GREY_600, italic=True, visible=False
+    )
+
+    def simular_emprestimo(e):
+        try:
+            nome = nome_input.value
+            cpf = cpf_input.value
+            endereco_completo = f"{rua_input.value}, {numero_input.value}, {bairro_input.value}, {cidade_cliente_input.value}, {cep_input.value}"
+            
+            valor_limpo = valor_input.value.replace('.', '').replace(',', '.')
+            valor = float(valor_limpo)
+            
+            juros_limpo = juros_input.value.replace('.', '').replace(',', '.')
+            juros = float(juros_limpo)
+            
+            qtd_parcelas = int(parcelas_input.value)
+            
+            data_str = data_input.value.replace('/', '').replace('-', '')
+            if len(data_str) == 8:
+                data_str = f"{data_str[:2]}/{data_str[2:4]}/{data_str[4:]}"
+                data_input.value = data_str 
+            
+            data_base = datetime.strptime(data_str, "%d/%m/%Y")
+            
+            valor_juros = valor * (juros / 100)
+            valor_total = valor + valor_juros
+            valor_parcela = valor_total / qtd_parcelas
